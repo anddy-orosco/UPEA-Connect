@@ -1,10 +1,15 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:open_file/open_file.dart';
+import 'package:flutter/foundation.dart';
 import '../theme/colors.dart';
 import '../models/note_model.dart';
+import '../models/note_page_model.dart';
 import '../services/notes_service.dart';
+import '../services/pptx_export_service.dart';
+import '../widgets/rich_text_toolbar.dart';
+import '../widgets/a4_page_canvas.dart';
 
 class NotesScreen extends StatefulWidget {
   const NotesScreen({super.key});
@@ -117,7 +122,7 @@ class _NotesScreenState extends State<NotesScreen> {
               },
               decoration: InputDecoration(
                 hintText: 'Buscar notas...',
-                prefixIcon: Icon(Icons.search, color: AppColors.azulPrincipal),
+                prefixIcon: const Icon(Icons.search, color: AppColors.azulPrincipal),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide.none,
@@ -232,7 +237,7 @@ class _NotesScreenState extends State<NotesScreen> {
                       ),
                       child: Text(
                         note.courseName!,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.azulPrincipal,
                           fontWeight: FontWeight.w500,
@@ -267,7 +272,7 @@ class _NotesScreenState extends State<NotesScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: Icon(
+                    icon: const Icon(
                       Icons.delete_outline,
                       color: AppColors.rojoAlerta,
                       size: 20,
@@ -286,6 +291,10 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 }
 
+// ============================================================================
+// EDITOR CON SOPORTE COMPLETO DE ELEMENTOS FLOTANTES, IMÁGENES Y GUARDADO
+// ============================================================================
+
 class NoteEditorScreen extends StatefulWidget {
   final NoteModel? note;
 
@@ -297,8 +306,17 @@ class NoteEditorScreen extends StatefulWidget {
 
 class _NoteEditorScreenState extends State<NoteEditorScreen> {
   final _titleController = TextEditingController();
-  final _contentController = TextEditingController();
   final _courseController = TextEditingController();
+
+  List<NotePageModel> _pages = [NotePageModel(pageIndex: 0)];
+  final PageController _pageController = PageController();
+  final Map<int, TextEditingController> _pageTextControllers = {};
+
+  int _currentPage = 0;
+  double _fontSize = 16.0;
+  bool _isBold = false;
+  bool _isItalic = false;
+  TextAlign _textAlign = TextAlign.left;
   bool _isLoading = false;
 
   @override
@@ -306,16 +324,147 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     super.initState();
     if (widget.note != null) {
       _titleController.text = widget.note!.title;
-      _contentController.text = widget.note!.content;
       _courseController.text = widget.note!.courseName ?? '';
+      if (widget.note!.pages.isNotEmpty) {
+        _pages = widget.note!.pages;
+      } else {
+        _pages = [NotePageModel(pageIndex: 0, textContent: widget.note!.content)];
+      }
+    }
+
+    for (int i = 0; i < _pages.length; i++) {
+      _pageTextControllers[i] = TextEditingController(text: _pages[i].textContent);
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _courseController.dispose();
+    for (var controller in _pageTextControllers.values) {
+      controller.dispose();
+    }
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  TextEditingController _getController(int index) {
+    if (!_pageTextControllers.containsKey(index)) {
+      _pageTextControllers[index] = TextEditingController(
+        text: index < _pages.length ? _pages[index].textContent : '',
+      );
+    }
+    return _pageTextControllers[index]!;
+  }
+
+  void _addNewPage() {
+    setState(() {
+      final newIndex = _pages.length;
+      _pages.add(NotePageModel(pageIndex: newIndex));
+      _pageTextControllers[newIndex] = TextEditingController();
+    });
+    _pageController.animateToPage(
+      _pages.length - 1,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  void _addFloatingTextBox() {
+    setState(() {
+      _pages[_currentPage].floatingElements.add(
+        FloatingElement(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          position: const Offset(40, 40),
+          width: 180,
+          height: 100,
+          text: '',
+        ),
+      );
+    });
+  }
+
+  Future<void> _addFloatingImage() async {
+    final picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+    if (image != null) {
+      setState(() {
+        _pages[_currentPage].floatingElements.add(
+          FloatingElement(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            position: const Offset(50, 100),
+            width: 200,
+            height: 150,
+            imagePath: image.path,
+            isImage: true,
+          ),
+        );
+      });
+    }
+  }
+
+  Future<void> _exportToPptx() async {
+    if (_titleController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Escribe un título para exportar'),
+          backgroundColor: AppColors.rojoAlerta,
+        ),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Generando archivo de exportación...')),
+    );
+
+    // Sincronizar textos antes de exportar
+    _syncPageControllers();
+
+    final result = await PptxExportService.exportNotesToPptx(_pages, _titleController.text.trim());
+
+    if (mounted) {
+      if (kIsWeb) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result),
+            backgroundColor: AppColors.verdeExito,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Exportado con éxito en: $result'),
+            backgroundColor: AppColors.verdeExito,
+            action: SnackBarAction(
+              label: 'Abrir',
+              textColor: AppColors.blanco,
+              onPressed: () => OpenFile.open(result),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  void _syncPageControllers() {
+    for (int i = 0; i < _pages.length; i++) {
+      if (_pageTextControllers.containsKey(i)) {
+        _pages[i].textContent = _pageTextControllers[i]!.text;
+      }
     }
   }
 
   Future<void> _saveNote() async {
-    if (_titleController.text.isEmpty || _contentController.text.isEmpty) {
+    _syncPageControllers();
+
+    final fullContent = _pages.map((p) => p.textContent).join('\n---\n');
+
+    if (_titleController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('El título y contenido son obligatorios'),
+          content: Text('El título de la nota es obligatorio'),
           backgroundColor: AppColors.rojoAlerta,
         ),
       );
@@ -331,12 +480,13 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       final note = NoteModel(
         id: widget.note?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
         title: _titleController.text.trim(),
-        content: _contentController.text.trim(),
+        content: fullContent,
         createdAt: widget.note?.createdAt ?? now,
         updatedAt: now,
         courseName: _courseController.text.trim().isNotEmpty
             ? _courseController.text.trim()
             : null,
+        pages: _pages, // Se envían las páginas con sus textos e imágenes flotantes
       );
 
       await NotesService.saveNote(note);
@@ -372,12 +522,18 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.grisClaro,
       appBar: AppBar(
         title: Text(widget.note == null ? 'Nueva Nota' : 'Editar Nota'),
         backgroundColor: AppColors.azulPrincipal,
         foregroundColor: AppColors.blanco,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.slideshow),
+            tooltip: 'Exportar Documento',
+            onPressed: _exportToPptx,
+          ),
           TextButton(
             onPressed: _isLoading ? null : _saveNote,
             style: TextButton.styleFrom(
@@ -408,99 +564,102 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           valueColor: AlwaysStoppedAnimation<Color>(AppColors.azulPrincipal),
         ),
       )
-          : SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Título
-            const Text(
-              'Título',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.azulOscuro,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _titleController,
-              decoration: InputDecoration(
-                hintText: 'Ej: Resumen de algoritmos',
-                prefixIcon: Icon(Icons.title, color: AppColors.azulPrincipal, size: 20),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
+          : Column(
+        children: [
+          // Campos Superiores (Título y Materia)
+          Container(
+            color: AppColors.blanco,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _titleController,
+                    decoration: const InputDecoration(
+                      hintText: 'Título de la nota...',
+                      border: InputBorder.none,
+                    ),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
                 ),
-                filled: true,
-                fillColor: AppColors.grisClaro,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 140,
+                  child: TextField(
+                    controller: _courseController,
+                    decoration: const InputDecoration(
+                      hintText: 'Materia (Opcional)',
+                      border: InputBorder.none,
+                    ),
+                    style: const TextStyle(fontSize: 14, color: AppColors.azulOscuro),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
+          ),
+          const Divider(height: 1),
 
-            // Materia (opcional)
-            const Text(
-              'Materia (opcional)',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.azulOscuro,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _courseController,
-              decoration: InputDecoration(
-                hintText: 'Ej: Matemáticas, Física, etc.',
-                prefixIcon: Icon(Icons.book, color: AppColors.azulPrincipal, size: 20),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: AppColors.grisClaro,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
-            ),
-            const SizedBox(height: 20),
+          // Barra de herramientas de texto enriquecido
+          RichTextToolbar(
+            fontSize: _fontSize,
+            onFontSizeChanged: (newSize) => setState(() => _fontSize = newSize),
+            onToggleBold: () => setState(() => _isBold = !_isBold),
+            onToggleItalic: () => setState(() => _isItalic = !_isItalic),
+            onToggleBullet: () {
+              final controller = _getController(_currentPage);
+              controller.text = '${controller.text}\n• ';
+            },
+            onAlignmentChanged: (align) => setState(() => _textAlign = align),
+            onAddTextBox: _addFloatingTextBox,
+            onAddImage: _addFloatingImage,
+          ),
+          const Divider(height: 1),
 
-            // Contenido
-            const Text(
-              'Contenido',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.azulOscuro,
-              ),
+          // ÁREA DE TRABAJO - Lienzo Hoja A4 con Paginación
+          Expanded(
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: _pages.length,
+              onPageChanged: (page) => setState(() => _currentPage = page),
+              itemBuilder: (context, index) {
+                return A4PageCanvas(
+                  pageModel: _pages[index],
+                  textController: _getController(index),
+                  fontSize: _fontSize,
+                  isBold: _isBold,
+                  isItalic: _isItalic,
+                  textAlign: _textAlign,
+                  onChanged: (text) => _pages[index].textContent = text,
+                );
+              },
             ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _contentController,
-              maxLines: 10,
-              decoration: InputDecoration(
-                hintText: 'Escribe tu nota aquí...',
-                alignLabelWithHint: true,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
+          ),
+
+          // Paginador Inferior
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: AppColors.blanco,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Página ${_currentPage + 1} de ${_pages.length}',
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.azulOscuro),
                 ),
-                filled: true,
-                fillColor: AppColors.grisClaro,
-                contentPadding: const EdgeInsets.all(16),
-              ),
+                ElevatedButton.icon(
+                  onPressed: _addNewPage,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.azulPrincipal,
+                    foregroundColor: AppColors.blanco,
+                  ),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Agregar Hoja'),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _contentController.dispose();
-    _courseController.dispose();
-    super.dispose();
   }
 }
