@@ -1,12 +1,10 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+import 'package:http/http.dart' as http;
 import '../models/note_page_model.dart';
+import 'pptx_save_helper.dart';
 
 class PptxExportService {
   static Future<String> exportNotesToPptx(List<NotePageModel> pages, String title) async {
@@ -52,7 +50,7 @@ class PptxExportService {
       presRels.write('</Relationships>');
       _addFileToArchive(archive, 'ppt/_rels/presentation.xml.rels', utf8.encode(presRels.toString()));
 
-      // 4. ppt/presentation.xml - CONFIGURACIÓN VERTICAL (6858000 x 9144000 EMUs)
+      // 4. ppt/presentation.xml - CONFIGURACIÓN VERTICAL
       final StringBuffer presentationXml = StringBuffer();
       presentationXml.write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>');
       presentationXml.write('<p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">');
@@ -62,12 +60,11 @@ class PptxExportService {
         presentationXml.write('<p:sldId id="${256 + i}" r:id="rId${i + 1}"/>');
       }
       presentationXml.write('</p:sldIdLst>');
-      // DIMENSIONES VERTICALES (Ancho: 6858000, Alto: 9144000)
       presentationXml.write('<p:sldSz cx="6858000" cy="9144000" type="A4"/>');
       presentationXml.write('</p:presentation>');
       _addFileToArchive(archive, 'ppt/presentation.xml', utf8.encode(presentationXml.toString()));
 
-      // 5. ARCHIVOS DE PLANTILLA NECESARIOS PARA EVITAR "REPARACIÓN EN CELULARES"
+      // 5. ARCHIVOS DE PLANTILLA
       _addFileToArchive(archive, 'ppt/theme/theme1.xml', utf8.encode(_getThemeXml()));
       _addFileToArchive(archive, 'ppt/slideMasters/slideMaster1.xml', utf8.encode(_getSlideMasterXml()));
       _addFileToArchive(archive, 'ppt/slideMasters/_rels/slideMaster1.xml.rels', utf8.encode(_getSlideMasterRelsXml()));
@@ -96,7 +93,6 @@ class PptxExportService {
         int shapeId = 2;
         int slideRelCounter = 1;
 
-        // A) Texto Principal de la hoja A4 Vertical
         if (page.textContent.trim().isNotEmpty) {
           slideXml.write(_buildTextShape(
             id: shapeId++,
@@ -110,9 +106,7 @@ class PptxExportService {
           ));
         }
 
-        // B) Elementos Flotantes escalados al lienzo vertical
         for (var elem in page.floatingElements) {
-          // Factor de conversión adaptado a lienzo vertical
           final int x = (elem.position.dx * 12000).toInt();
           final int y = ((elem.position.dy + 40) * 12000).toInt();
           final int cx = (elem.width * 12000).toInt();
@@ -162,7 +156,7 @@ class PptxExportService {
         _addFileToArchive(archive, 'ppt/slides/_rels/slide$slideNumber.xml.rels', utf8.encode(slideRelsXml.toString()));
       }
 
-      // 7. EMPAQUETADO FINAL ZIP/PPTX
+      // 7. EMPAQUETADO FINAL
       final ZipEncoder encoder = ZipEncoder();
       final List<int>? pptxBytes = encoder.encode(archive);
 
@@ -171,21 +165,8 @@ class PptxExportService {
       final String cleanTitle = title.replaceAll(RegExp(r'[^\w\s\-]'), '_');
       final String filename = '$cleanTitle.pptx';
 
-      if (kIsWeb) {
-        final blob = html.Blob([pptxBytes], 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
-        final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.AnchorElement(href: url)
-          ..setAttribute('download', filename)
-          ..click();
-        html.Url.revokeObjectUrl(url);
-        return 'Presentación descargada: $filename';
-      } else {
-        final outputDir = await getApplicationDocumentsDirectory();
-        final filePath = '${outputDir.path}/$filename';
-        final file = File(filePath);
-        await file.writeAsBytes(pptxBytes);
-        return filePath;
-      }
+      // 8. GUARDADO DELEGADO A LA PLATAFORMA CORRESPONDIENTE
+      return await PptxSaveHelper.saveAndDownload(pptxBytes, filename);
     } catch (e) {
       return 'Error al exportar PowerPoint: $e';
     }
@@ -193,14 +174,16 @@ class PptxExportService {
 
   static Future<Uint8List?> _loadImageBytes(String path) async {
     try {
-      if (kIsWeb) {
-        final request = await html.HttpRequest.request(path, responseType: 'arraybuffer');
-        return Uint8List.view(request.response as ByteBuffer);
-      } else {
-        final file = File(path);
-        if (await file.exists()) {
-          return await file.readAsBytes();
+      if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('blob:')) {
+        final response = await http.get(Uri.parse(path));
+        if (response.statusCode == 200) {
+          return response.bodyBytes;
         }
+      } else if (path.startsWith('data:image')) {
+        final String base64Data = path.split(',').last;
+        return base64Decode(base64Data);
+      } else {
+        return await PptxSaveHelper.readLocalFile(path);
       }
     } catch (e) {
       debugPrint('Error al leer imagen: $e');
@@ -285,7 +268,7 @@ class PptxExportService {
   static String _getThemeXml() {
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         '<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office Theme">'
-        '<a:themeElements><a:clrScheme name="Office"><a:dk1><a:srgbClr val="000000"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="1F497D"/></a:dk2><a:lt2><a:srgbClr val="EEECE1"/></a:lt2><a:accent1><a:srgbClr val="4F81BD"/></a:accent1><a:accent2><a:srgbClr val="F05A28"/></a:accent2><a:accent3><a:srgbClr val="9BBB59"/></a:accent3><a:accent4><a:srgbClr val="8064A2"/></a:accent4><a:accent5><a:srgbClr val="4BACC6"/></a:accent5><a:accent6><a:srgbClr val="F79646"/></a:accent6><a:hlink><a:srgbClr val="0000FF"/></a:hlink><a:folHlink><a:srgbClr val="800080"/></a:folHlink></a:clrScheme>'
+        '<a:themeElements><a:clrScheme name="Office"><a:dk1><a:srgbClr val="000000"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="1F497D"/></a:dk2><a:lt2><a:srgbClr val="EEECE1"/></a:lt2><a:accent1><a:srgbClr val="4F81BD"/></a:accent1><a:accent2><a:srgbClr val="F05A28"/></a:accent2><a:accent3><a:srgbClr val="9BBB59"/></a:accent3><a:accent4><a:srgbClr val="8064A2"/></a:accent4><a:accent5><a:srgbClr val="4BACC6"/></a:accent5><a:accent6><a:srgbClr val="F79646"/></a:accent6><a:hlink><a:srgbClr val="0000FF"/></a:srgbClr><a:folHlink><a:srgbClr val="800080"/></a:folHlink></a:clrScheme>'
         '<a:fontScheme name="Office"><a:majorFont><a:latin typeface="Calibri"/></a:majorFont><a:minorFont><a:latin typeface="Calibri"/></a:minorFont></a:fontScheme>'
         '<a:fmtScheme name="Office"><a:fillStyleLst><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectLst/></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>';
   }
