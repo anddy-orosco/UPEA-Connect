@@ -6,7 +6,8 @@ import '../theme/colors.dart';
 import '../models/user_model.dart';
 import 'profile_screen.dart';
 import 'account_switcher.dart';
-import 'notes_screen.dart'; // <-- IMPORTANTE: Importar NotesScreen
+import 'notes_screen.dart';
+import 'calendar_screen.dart'; // <-- Carga de la nueva pantalla del calendario
 import '../widgets/drawer_menu.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -69,7 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _currentUser = updatedUser;
     });
 
-    // Mostrar mensaje de confirmación
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -120,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 2:
         return 'Cambiar Cuenta';
       case 3:
-        return 'Horario';
+        return 'Calendario Académico';
       case 4:
         return 'Mis Apuntes';
       case 5:
@@ -152,44 +152,15 @@ class _HomeScreenState extends State<HomeScreen> {
           currentUser: _currentUser!,
           onAccountSelected: (user) {
             _updateUser(user);
-            // Volver a la pantalla de inicio después de cambiar cuenta
             setState(() {
               _selectedIndex = 0;
             });
           },
         );
       case 3:
-        return const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.calendar_month,
-                size: 80,
-                color: AppColors.azulPrincipal,
-              ),
-              SizedBox(height: 20),
-              Text(
-                'Pantalla de Horario',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.azulOscuro,
-                ),
-              ),
-              SizedBox(height: 10),
-              Text(
-                'Próximamente...',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-        );
+        return const CalendarScreen(); // <-- Integración de la vista del Calendario
       case 4:
-        return const NotesScreen(); // <-- Pantalla de notas implementada
+        return const NotesScreen();
       case 5:
         return const Center(
           child: Column(
@@ -243,7 +214,6 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Foto de perfil
               Container(
                 width: 120,
                 height: 120,
@@ -276,8 +246,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Mensaje de bienvenida personalizado
               Text(
                 '¡Bienvenido, ${_currentUser!.nombre}!',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -287,10 +255,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 10),
-
-              // Carrera
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 child: Text(
                   _currentUser!.carrera.isNotEmpty
                       ? _currentUser!.carrera
@@ -301,8 +268,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   textAlign: TextAlign.center,
                 ),
               ),
-
-              // Semestre
               Text(
                 _currentUser!.semestre.isNotEmpty
                     ? 'Semestre: ${_currentUser!.semestre}'
@@ -311,10 +276,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: AppColors.azulOscuro.withOpacity(0.7),
                 ),
               ),
-
               const SizedBox(height: 30),
-
-              // Tarjetas de acceso rápido (opcional)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
@@ -327,7 +289,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     _buildQuickAccessCard(
                       icon: Icons.calendar_month,
-                      label: 'Horario',
+                      label: 'Calendario',
                       index: 3,
                     ),
                     _buildQuickAccessCard(

@@ -120,7 +120,7 @@ class DrawerMenu extends StatelessWidget {
                   ),
                   _buildMenuItem(
                     icon: Icons.calendar_month,
-                    label: 'Horario',
+                    label: 'Calendario Académico', // <-- Cambiado de 'Horario' a 'Calendario Académico'
                     index: 3,
                   ),
                   _buildMenuItem(
