@@ -1,9 +1,16 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/colors.dart';
 import '../services/api_service.dart';
 import 'home_screen.dart';
+import 'register_screen.dart';
 
+/// Pantalla de inicio de sesión.
+/// Vive en lib/screens/login_screen.dart
+///
+/// Reemplaza al formulario anterior que pedía todos los datos
+/// (nombre, carrera, semestre) cada vez. Ahora solo pide email
+/// y contraseña; crear cuenta nueva vive en register_screen.dart.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -13,83 +20,73 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nombreController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _carreraController = TextEditingController();
-  final _semestreController = TextEditingController();
 
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   Future<void> _iniciarSesion() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+    if (!_formKey.currentState!.validate()) return;
 
-      try {
-        final email = _emailController.text.trim();
-        final password = _passwordController.text.trim();
+    setState(() {
+      _isLoading = true;
+    });
 
-        Map<String, dynamic> result;
+    try {
+      final result = await ApiService.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
 
-        try {
-          // Primero intenta REGISTRAR (cuenta nueva)
-          result = await ApiService.register(
-            nombre: _nombreController.text.trim(),
-            email: email,
-            password: password,
-            carrera: _carreraController.text.trim(),
-            semestre: _semestreController.text.trim(),
-          );
-        } catch (e) {
-          // Si el email ya existe, intenta INICIAR SESIÓN en su lugar
-          if (e.toString().contains('EMAIL_ALREADY_REGISTERED') ||
-              e.toString().contains('ya está registrado')) {
-            result = await ApiService.login(email: email, password: password);
-          } else {
-            rethrow;
-          }
-        }
+      final token = result['token'] as String;
+      final user = result['user'] as Map<String, dynamic>;
 
-        final token = result['token'] as String;
-        final user = result['user'] as Map<String, dynamic>;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('auth_token', token);
+      await prefs.setString('user_nombre', user['nombre'] ?? '');
+      await prefs.setString('user_email', user['email'] ?? '');
+      await prefs.setString('user_carrera', user['carrera'] ?? '');
+      await prefs.setString('user_semestre', user['semestre'] ?? '');
+      await prefs.setBool('is_logged_in', true);
 
-        final prefs = await SharedPreferences.getInstance();
-
-        // Token de sesión (se usará para las próximas peticiones al backend)
-        await prefs.setString('auth_token', token);
-
-        // Datos del usuario, para que el resto de la app (home, perfil) siga
-        // funcionando igual que antes.
-        await prefs.setString('user_nombre', user['nombre'] ?? '');
-        await prefs.setString('user_email', user['email'] ?? '');
-        await prefs.setString('user_carrera', user['carrera'] ?? '');
-        await prefs.setString('user_semestre', user['semestre'] ?? '');
-        await prefs.setBool('is_logged_in', true);
-
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: $e'),
-              backgroundColor: AppColors.rojoAlerta,
-            ),
-          );
-        }
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_mensajeError(e)),
+            backgroundColor: AppColors.rojoAlerta,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
+  }
+
+  String _mensajeError(Object e) {
+    final texto = e.toString();
+    if (texto.contains('INVALID_CREDENTIALS') ||
+        texto.toLowerCase().contains('credenciales') ||
+        texto.toLowerCase().contains('incorrect')) {
+      return 'Email o contraseña incorrectos';
+    }
+    return 'No se pudo iniciar sesión. Intenta de nuevo';
+  }
+
+  void _irACrearCuenta() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const RegisterScreen()),
+    );
   }
 
   @override
@@ -102,51 +99,59 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 70,
-                    height: 70,
+                    width: 76,
+                    height: 76,
                     decoration: BoxDecoration(
                       color: AppColors.blanco,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.azulOscuro.withOpacity(0.2),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                          color: AppColors.azulOscuro.withOpacity(0.25),
+                          blurRadius: 12,
+                          offset: const Offset(0, 5),
                         ),
                       ],
                     ),
                     child: const Icon(
                       Icons.school,
-                      size: 35,
+                      size: 38,
                       color: AppColors.azulPrincipal,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Bienvenido Estudiante',
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Inicia sesión',
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: AppColors.blanco,
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Bienvenido de vuelta a UPEA-Connect',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.blanco.withOpacity(0.85),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
                   Container(
-                    width: 320,
-                    padding: const EdgeInsets.all(20),
+                    width: 340,
+                    padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
                       color: AppColors.blanco,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(18),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.azulOscuro.withOpacity(0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
+                          color: AppColors.azulOscuro.withOpacity(0.12),
+                          blurRadius: 24,
+                          offset: const Offset(0, 10),
                         ),
                       ],
                     ),
@@ -156,32 +161,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           TextFormField(
-                            controller: _nombreController,
-                            style: const TextStyle(fontSize: 14),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Ingresa tu nombre';
-                              }
-                              return null;
-                            },
-                            decoration: InputDecoration(
-                              labelText: 'Nombre completo',
-                              labelStyle: const TextStyle(fontSize: 13),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                              prefixIcon: Icon(Icons.person, size: 18, color: AppColors.azulPrincipal),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide.none,
-                              ),
-                              filled: true,
-                              fillColor: AppColors.grisClaro,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextFormField(
                             controller: _emailController,
-                            style: const TextStyle(fontSize: 14),
                             keyboardType: TextInputType.emailAddress,
+                            style: const TextStyle(fontSize: 14),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Ingresa tu email';
@@ -194,27 +176,25 @@ class _LoginScreenState extends State<LoginScreen> {
                             decoration: InputDecoration(
                               labelText: 'Correo electrónico',
                               labelStyle: const TextStyle(fontSize: 13),
+                              hintText: 'nombre@ejemplo.com',
                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                              prefixIcon: Icon(Icons.email, size: 18, color: AppColors.azulPrincipal),
+                              prefixIcon: Icon(Icons.email_outlined, size: 20, color: AppColors.azulPrincipal),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide.none,
                               ),
                               filled: true,
                               fillColor: AppColors.grisClaro,
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 14),
                           TextFormField(
                             controller: _passwordController,
+                            obscureText: _obscurePassword,
                             style: const TextStyle(fontSize: 14),
-                            obscureText: true,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Ingresa tu contraseña';
-                              }
-                              if (value.length < 8) {
-                                return 'Mínimo 8 caracteres';
                               }
                               return null;
                             },
@@ -222,89 +202,81 @@ class _LoginScreenState extends State<LoginScreen> {
                               labelText: 'Contraseña',
                               labelStyle: const TextStyle(fontSize: 13),
                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                              prefixIcon: Icon(Icons.lock, size: 18, color: AppColors.azulPrincipal),
+                              prefixIcon: Icon(Icons.lock_outline, size: 20, color: AppColors.azulPrincipal),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                  size: 20,
+                                  color: Colors.grey,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscurePassword = !_obscurePassword;
+                                  });
+                                },
+                              ),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide.none,
                               ),
                               filled: true,
                               fillColor: AppColors.grisClaro,
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: _carreraController,
-                            style: const TextStyle(fontSize: 14),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Ingresa tu carrera';
-                              }
-                              return null;
-                            },
-                            decoration: InputDecoration(
-                              labelText: 'Carrera',
-                              labelStyle: const TextStyle(fontSize: 13),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                              prefixIcon: Icon(Icons.school, size: 18, color: AppColors.azulPrincipal),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide.none,
-                              ),
-                              filled: true,
-                              fillColor: AppColors.grisClaro,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: _semestreController,
-                            style: const TextStyle(fontSize: 14),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Ingresa tu semestre';
-                              }
-                              return null;
-                            },
-                            decoration: InputDecoration(
-                              labelText: 'Semestre',
-                              labelStyle: const TextStyle(fontSize: 13),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                              prefixIcon: Icon(Icons.grade, size: 18, color: AppColors.azulPrincipal),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide.none,
-                              ),
-                              filled: true,
-                              fillColor: AppColors.grisClaro,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 22),
                           SizedBox(
                             width: double.infinity,
-                            height: 45,
+                            height: 46,
                             child: ElevatedButton(
                               onPressed: _isLoading ? null : _iniciarSesion,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.azulPrincipal,
                                 foregroundColor: AppColors.blanco,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 elevation: 2,
                               ),
                               child: _isLoading
                                   ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: AppColors.blanco,
-                                  strokeWidth: 2,
-                                ),
-                              )
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        color: AppColors.blanco,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
                                   : const Text(
-                                'Comenzar',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                              ),
+                                      'Iniciar sesión',
+                                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                                    ),
                             ),
+                          ),
+                          const SizedBox(height: 18),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                '¿No tienes cuenta?',
+                                style: TextStyle(fontSize: 13, color: Colors.grey),
+                              ),
+                              TextButton(
+                                onPressed: _isLoading ? null : _irACrearCuenta,
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: const Text(
+                                  'Crear cuenta',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.azulPrincipal,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -321,11 +293,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _nombreController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _carreraController.dispose();
-    _semestreController.dispose();
     super.dispose();
   }
 }
