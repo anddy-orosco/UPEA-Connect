@@ -1,8 +1,7 @@
-﻿import 'dart:convert'; // <-- IMPORTANTE: Agregar este import
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/colors.dart';
-import '../models/user_model.dart';
+import '../services/api_service.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -16,6 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nombreController = TextEditingController();
   final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _carreraController = TextEditingController();
   final _semestreController = TextEditingController();
 
@@ -28,32 +28,45 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       try {
+        final email = _emailController.text.trim();
+        final password = _passwordController.text.trim();
+
+        Map<String, dynamic> result;
+
+        try {
+          // Primero intenta REGISTRAR (cuenta nueva)
+          result = await ApiService.register(
+            nombre: _nombreController.text.trim(),
+            email: email,
+            password: password,
+            carrera: _carreraController.text.trim(),
+            semestre: _semestreController.text.trim(),
+          );
+        } catch (e) {
+          // Si el email ya existe, intenta INICIAR SESIÓN en su lugar
+          if (e.toString().contains('EMAIL_ALREADY_REGISTERED') ||
+              e.toString().contains('ya está registrado')) {
+            result = await ApiService.login(email: email, password: password);
+          } else {
+            rethrow;
+          }
+        }
+
+        final token = result['token'] as String;
+        final user = result['user'] as Map<String, dynamic>;
+
         final prefs = await SharedPreferences.getInstance();
 
-        // Guardar usuario actual
-        await prefs.setString('user_nombre', _nombreController.text.trim());
-        await prefs.setString('user_email', _emailController.text.trim());
-        await prefs.setString('user_carrera', _carreraController.text.trim());
-        await prefs.setString('user_semestre', _semestreController.text.trim());
+        // Token de sesión (se usará para las próximas peticiones al backend)
+        await prefs.setString('auth_token', token);
+
+        // Datos del usuario, para que el resto de la app (home, perfil) siga
+        // funcionando igual que antes.
+        await prefs.setString('user_nombre', user['nombre'] ?? '');
+        await prefs.setString('user_email', user['email'] ?? '');
+        await prefs.setString('user_carrera', user['carrera'] ?? '');
+        await prefs.setString('user_semestre', user['semestre'] ?? '');
         await prefs.setBool('is_logged_in', true);
-
-        // Guardar en lista de cuentas
-        final accountsJson = prefs.getString('saved_accounts') ?? '[]';
-        List<dynamic> accounts = jsonDecode(accountsJson);
-
-        final newAccount = {
-          'nombre': _nombreController.text.trim(),
-          'email': _emailController.text.trim(),
-          'carrera': _carreraController.text.trim(),
-          'semestre': _semestreController.text.trim(),
-        };
-
-        // Verificar si ya existe
-        bool exists = accounts.any((acc) => acc['email'] == newAccount['email']);
-        if (!exists) {
-          accounts.add(newAccount);
-          await prefs.setString('saved_accounts', jsonEncode(accounts));
-        }
 
         if (mounted) {
           Navigator.of(context).pushReplacement(
@@ -64,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error al guardar los datos: $e'),
+              content: Text('Error: $e'),
               backgroundColor: AppColors.rojoAlerta,
             ),
           );
@@ -93,7 +106,6 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo
                   Container(
                     width: 70,
                     height: 70,
@@ -115,8 +127,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // Título
                   Text(
                     'Bienvenido Estudiante',
                     style: TextStyle(
@@ -126,8 +136,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-
-                  // Formulario
                   Container(
                     width: 320,
                     padding: const EdgeInsets.all(20),
@@ -147,7 +155,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Nombre
                           TextFormField(
                             controller: _nombreController,
                             style: const TextStyle(fontSize: 14),
@@ -171,8 +178,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
-
-                          // Email
                           TextFormField(
                             controller: _emailController,
                             style: const TextStyle(fontSize: 14),
@@ -200,8 +205,33 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
-
-                          // Carrera
+                          TextFormField(
+                            controller: _passwordController,
+                            style: const TextStyle(fontSize: 14),
+                            obscureText: true,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Ingresa tu contraseña';
+                              }
+                              if (value.length < 8) {
+                                return 'Mínimo 8 caracteres';
+                              }
+                              return null;
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'Contraseña',
+                              labelStyle: const TextStyle(fontSize: 13),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              prefixIcon: Icon(Icons.lock, size: 18, color: AppColors.azulPrincipal),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide.none,
+                              ),
+                              filled: true,
+                              fillColor: AppColors.grisClaro,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
                           TextFormField(
                             controller: _carreraController,
                             style: const TextStyle(fontSize: 14),
@@ -225,8 +255,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
-
-                          // Semestre
                           TextFormField(
                             controller: _semestreController,
                             style: const TextStyle(fontSize: 14),
@@ -250,8 +278,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 20),
-
-                          // Botón Comenzar
                           SizedBox(
                             width: double.infinity,
                             height: 45,
@@ -297,6 +323,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _nombreController.dispose();
     _emailController.dispose();
+    _passwordController.dispose();
     _carreraController.dispose();
     _semestreController.dispose();
     super.dispose();
