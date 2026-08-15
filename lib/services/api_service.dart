@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
   // localhost funciona porque corremos en Chrome/Edge en la misma PC.
-  static const String baseUrl = 'http://localhost:3000/api';
+static const String baseUrl = 'https://upea-connect-backend.vercel.app/api';
 
   static Future<Map<String, dynamic>> register({
     required String nombre,
