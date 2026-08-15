@@ -140,6 +140,11 @@ class DrawerMenu extends StatelessWidget {
                     endIndent: 20,
                   ),
                   _buildMenuItem(
+                    icon: Icons.smart_toy,
+                    label: 'Pregúntale a la IA',
+                    index: 6,
+                  ),
+                  _buildMenuItem(
                     icon: Icons.logout,
                     label: 'Cerrar Sesión',
                     index: -1,

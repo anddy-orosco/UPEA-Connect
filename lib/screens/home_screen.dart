@@ -9,6 +9,7 @@ import 'account_switcher.dart';
 import 'notes_screen.dart';
 import 'calendar_screen.dart'; // <-- Carga de la nueva pantalla del calendario
 import '../widgets/drawer_menu.dart';
+import 'chat_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -125,6 +126,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return 'Mis Apuntes';
       case 5:
         return 'Tareas';
+      case 6:
+        return 'Asistente IA';
       default:
         return 'Inicio';
     }
@@ -191,6 +194,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         );
+      case 6:
+        return const ChatScreen();  
       default:
         return _buildHomeContent();
     }
@@ -279,23 +284,30 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 30),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                child: Wrap(
+                  alignment: WrapAlignment.spaceEvenly,
+                  spacing: 12,
+                  runSpacing: 16,
                   children: [
-                    _buildQuickAccessCard(
+                  _buildQuickAccessCard(
                       icon: Icons.note,
                       label: 'Apuntes',
                       index: 4,
                     ),
-                    _buildQuickAccessCard(
+                  _buildQuickAccessCard(
                       icon: Icons.calendar_month,
                       label: 'Calendario',
                       index: 3,
                     ),
-                    _buildQuickAccessCard(
+                  _buildQuickAccessCard(
                       icon: Icons.assignment,
                       label: 'Tareas',
                       index: 5,
+                    ),
+                  _buildQuickAccessCard(
+                      icon: Icons.smart_toy,
+                      label: 'Pregúntale a la IA',
+                      index: 6,
                     ),
                   ],
                 ),
