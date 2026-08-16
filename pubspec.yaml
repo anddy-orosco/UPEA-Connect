@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # Dependencias principales
   archive: ^3.3.7
@@ -21,8 +23,12 @@ dependencies:
   table_calendar: ^3.1.2
   http: ^1.2.0
 
+  # Notificaciones y zonas horarias
+  flutter_local_notifications: ^17.2.2
+  timezone: ^0.9.4
+
   # Formato de fechas
-  intl: ^0.19.0
+  intl: ^0.20.2
 
   # UI y utilidades
   cupertino_icons: ^1.0.8

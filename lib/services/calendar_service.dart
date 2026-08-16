@@ -1,37 +1,36 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/event_model.dart';
 
 class CalendarService {
-  // Lista en memoria para simular la persistencia de datos
-  final List<EventModel> _events = [
-    EventModel(
-      id: '1',
-      title: 'Entrega de Proyecto Flutter',
-      description: 'Presentación final del sistema UPEA Connect',
-      date: DateTime.now(),
-      startTime: const TimeOfDay(hour: 8, minute: 0),
-      endTime: const TimeOfDay(hour: 10, minute: 0),
-      category: 'Tarea',
-      color: Colors.indigo,
-    ),
-    EventModel(
-      id: '2',
-      title: 'Examen de Base de Datos',
-      description: 'Capítulos 1 al 4: Consultas SQL avanzadas',
-      date: DateTime.now().add(const Duration(days: 1)),
-      startTime: const TimeOfDay(hour: 10, minute: 30),
-      endTime: const TimeOfDay(hour: 12, minute: 0),
-      category: 'Examen',
-      color: Colors.redAccent,
-    ),
-  ];
+  static final CalendarService _instance = CalendarService._internal();
+  factory CalendarService() => _instance;
+  CalendarService._internal();
 
-  // Obtener todos los eventos
-  List<EventModel> getAllEvents() {
-    return List.unmodifiable(_events);
+  static const String _storageKey = 'university_events';
+  final List<EventModel> _events = [];
+
+  // Carga los eventos guardados en el almacenamiento local
+  Future<void> loadEvents() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? eventsJson = prefs.getString(_storageKey);
+
+    if (eventsJson != null) {
+      final List<dynamic> decoded = jsonDecode(eventsJson);
+      _events.clear();
+      _events.addAll(decoded.map((item) => EventModel.fromMap(item)));
+    }
   }
 
-  // Obtener eventos filtrados por un día específico
+  // Guarda la lista actual de eventos en SharedPreferences
+  Future<void> _saveEvents() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String encoded = jsonEncode(_events.map((e) => e.toMap()).toList());
+    await prefs.setString(_storageKey, encoded);
+  }
+
+  List<EventModel> getAllEvents() => List.unmodifiable(_events);
+
   List<EventModel> getEventsForDay(DateTime day) {
     return _events.where((event) {
       return event.date.year == day.year &&
@@ -40,23 +39,23 @@ class CalendarService {
     }).toList();
   }
 
-  // Agregar un nuevo evento
-  void addEvent(EventModel newEvent) {
-    _events.add(newEvent);
+  Future<void> addEvent(EventModel event) async {
+    _events.add(event);
+    await _saveEvents();
   }
 
-  // Cambiar estado de completado
-  void toggleEventCompletion(String id) {
-    final index = _events.indexWhere((e) => e.id == id);
+  Future<void> toggleEventCompletion(String eventId) async {
+    final index = _events.indexWhere((e) => e.id == eventId);
     if (index != -1) {
       _events[index] = _events[index].copyWith(
         isCompleted: !_events[index].isCompleted,
       );
+      await _saveEvents();
     }
   }
 
-  // Eliminar evento
-  void deleteEvent(String id) {
-    _events.removeWhere((e) => e.id == id);
+  Future<void> deleteEvent(String eventId) async {
+    _events.removeWhere((e) => e.id == eventId);
+    await _saveEvents();
   }
 }

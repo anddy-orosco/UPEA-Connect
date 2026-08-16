@@ -1,7 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Permisos de Almacenamiento -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+
+    <!-- Permisos para Notificaciones y Recordatorios de Eventos -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
 
     <application
         android:label="mi_app_universitaria"
@@ -39,7 +46,7 @@
             <data android:mimeType="text/plain"/>
         </intent>
 
-        <!-- AÑADIDO: Requerido por open_file para abrir archivos PPTX en visores externos (PowerPoint, Drive, WPS) -->
+        <!-- Requerido para abrir visores externos (PowerPoint, Drive, PDF) -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:mimeType="*/*" />

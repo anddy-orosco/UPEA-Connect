@@ -29,10 +29,11 @@ class EventModel {
       'title': title,
       'description': description,
       'date': date.toIso8601String(),
-      'startTime': '${startTime.hour}:${startTime.minute}',
-      'endTime': '${endTime.hour}:${endTime.minute}',
+      // Formato HH:mm con 2 dígitos (ej. 09:05 en lugar de 9:5)
+      'startTime': '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}',
+      'endTime': '${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}',
       'category': category,
-      'color': color.value,
+      'color': color.toARGB32(), // Compatible con Flutter 3.22+
       'isCompleted': isCompleted,
     };
   }
@@ -55,7 +56,7 @@ class EventModel {
         minute: int.parse(endParts[1]),
       ),
       category: map['category'],
-      color: Color(map['color']),
+      color: Color(map['color'] as int),
       isCompleted: map['isCompleted'] ?? false,
     );
   }
