@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 import '../models/chat_message_model.dart';
 import '../services/ai_chat_service.dart';
+import '../services/calendar_service.dart';
+import '../services/notes_service.dart';
+import '../models/event_model.dart';
+import '../models/note_model.dart';
 
 /// Pantalla de chat con la IA.
 /// Vive en lib/screens/chat_screen.dart
@@ -228,18 +232,97 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  void _confirmarAccion(ChatAction action) {
-    // TODO: cuando el calendario/notas estén conectados al backend,
-    // aquí se llama a NotesService/CalendarService para crear el
-    // registro real usando action.data.
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Acción "${action.type}" lista para conectarse (pendiente backend).',
+  // ─────────────────────────────────────────────────────────────
+  // Conexión real de las acciones del asistente con el backend.
+  // Reemplaza el TODO anterior ("pendiente backend").
+  // ─────────────────────────────────────────────────────────────
+
+  Future<void> _confirmarAccion(ChatAction action) async {
+    setState(() => _isLoading = true);
+
+    try {
+      if (action.type == 'crear_evento') {
+        await _crearEventoDesdeAccion(action);
+      } else if (action.type == 'crear_apunte') {
+        await _crearApunteDesdeAccion(action);
+      } else {
+        throw Exception('Tipo de acción desconocido: ${action.type}');
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            action.type == 'crear_evento'
+                ? 'Evento creado en tu calendario.'
+                : 'Apunte creado correctamente.',
+          ),
+          backgroundColor: AppColors.verdeExito,
         ),
-        backgroundColor: AppColors.verdeExito,
-      ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'No se pudo completar la acción: ${e.toString().replaceFirst('Exception: ', '')}',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _crearEventoDesdeAccion(ChatAction action) async {
+    final d = action.data;
+
+    final titulo = (d['titulo'] ?? d['title'] ?? 'Evento sin título').toString();
+    final tipo = (d['tipo'] ?? d['category'] ?? 'OTHER').toString();
+
+    final fechaRaw = (d['fecha'] ?? d['date'])?.toString();
+    if (fechaRaw == null) {
+      throw Exception('La IA no envió una fecha válida para el evento');
+    }
+    final fecha = DateTime.parse(fechaRaw);
+
+    final startTime = TimeOfDay(hour: fecha.hour, minute: fecha.minute);
+    final endDateTime = fecha.add(const Duration(hours: 1));
+    final endTime = TimeOfDay(hour: endDateTime.hour, minute: endDateTime.minute);
+
+    final evento = EventModel(
+      id: '',
+      title: titulo,
+      description: '',
+      date: DateTime(fecha.year, fecha.month, fecha.day),
+      startTime: startTime,
+      endTime: endTime,
+      category: tipo,
+      color: AppColors.azulPrincipal,
     );
+
+    await CalendarService().addEvent(evento);
+  }
+
+  Future<void> _crearApunteDesdeAccion(ChatAction action) async {
+    final d = action.data;
+
+    final titulo = (d['titulo'] ?? d['title'] ?? 'Apunte sin título').toString();
+    final contenido =
+        (d['contenido'] ?? d['content'] ?? d['resumen'] ?? '').toString();
+    final curso = (d['curso'] ?? d['courseName'])?.toString();
+
+    final nota = NoteModel(
+      id: '',
+      title: titulo,
+      content: contenido,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      courseName: curso,
+    );
+
+    await NotesService.saveNote(nota, isNew: true);
   }
 
   Widget _buildTypingIndicator() {

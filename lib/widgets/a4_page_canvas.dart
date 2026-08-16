@@ -139,15 +139,36 @@ class _ResizableFloatingWidgetState extends State<_ResizableFloatingWidget> {
               child: widget.elem.isImage && widget.elem.imagePath != null
                   ? ClipRRect(
                 borderRadius: BorderRadius.circular(4),
-                child: kIsWeb
+                // Si la ruta empieza con 'http', es una URL ya subida al
+                // backend (Vercel Blob) y se muestra con Image.network,
+                // tanto en web como en celular. Solo se usa Image.file
+                // como respaldo para imágenes locales viejas que aún
+                // no se hayan subido (o mientras se está subiendo).
+                child: widget.elem.imagePath!.startsWith('http')
                     ? Image.network(
                   widget.elem.imagePath!,
                   fit: BoxFit.contain,
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    return const Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.broken_image_outlined,
+                    color: Colors.grey,
+                  ),
                 )
+                    : (kIsWeb
+                    ? const Icon(Icons.image_outlined, color: Colors.grey)
                     : Image.file(
                   File(widget.elem.imagePath!),
                   fit: BoxFit.contain,
-                ),
+                )),
               )
                   : TextField(
                 controller: _controller,

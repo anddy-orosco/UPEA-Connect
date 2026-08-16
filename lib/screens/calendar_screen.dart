@@ -19,6 +19,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   bool _isLoading = true;
+  String? _loadError;
 
   @override
   void initState() {
@@ -27,13 +28,30 @@ class _CalendarScreenState extends State<CalendarScreen> {
     _loadInitialData();
   }
 
-  // Carga inicial de eventos desde SharedPreferences
+  // Carga inicial de eventos desde el backend. Antes, si loadEvents()
+  // fallaba (sin internet, token vencido, error del servidor), no había
+  // catch: la excepción quedaba sin manejar y _isLoading nunca pasaba a
+  // false, dejando el spinner girando para siempre sin ningún aviso.
   Future<void> _loadInitialData() async {
-    await _calendarService.loadEvents();
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+
+    try {
+      await _calendarService.loadEvents();
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _loadError = 'No se pudieron cargar los eventos: $e';
+        });
+      }
     }
   }
 
@@ -54,6 +72,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return upcoming.first;
   }
 
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.redAccent,
+      ),
+    );
+  }
+
   void _openAddEventModal() {
     showModalBottomSheet(
       context: context,
@@ -64,11 +92,33 @@ class _CalendarScreenState extends State<CalendarScreen> {
       builder: (_) => AddEventModal(
         selectedDate: _selectedDay ?? DateTime.now(),
         onEventAdded: (newEvent) async {
-          await _calendarService.addEvent(newEvent);
-          if (mounted) setState(() {});
+          try {
+            await _calendarService.addEvent(newEvent);
+            if (mounted) setState(() {});
+          } catch (e) {
+            _showError('No se pudo crear el evento: $e');
+          }
         },
       ),
     );
+  }
+
+  Future<void> _handleToggleComplete(EventModel event) async {
+    try {
+      await _calendarService.toggleEventCompletion(event.id);
+      if (mounted) setState(() {});
+    } catch (e) {
+      _showError('No se pudo actualizar el evento: $e');
+    }
+  }
+
+  Future<void> _handleDelete(EventModel event) async {
+    try {
+      await _calendarService.deleteEvent(event.id);
+      if (mounted) setState(() {});
+    } catch (e) {
+      _showError('No se pudo eliminar el evento: $e');
+    }
   }
 
   @override
@@ -83,6 +133,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ? const Center(
         child: CircularProgressIndicator(color: Colors.indigo),
       )
+          : _loadError != null
+          ? _buildLoadErrorState()
           : Column(
         children: [
           // Widget de Cuenta Regresiva (Solo si hay eventos pendientes)
@@ -263,15 +315,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 final event = selectedEvents[index];
                 return EventCard(
                   event: event,
-                  onToggleComplete: () async {
-                    await _calendarService
-                        .toggleEventCompletion(event.id);
-                    if (mounted) setState(() {});
-                  },
-                  onDelete: () async {
-                    await _calendarService.deleteEvent(event.id);
-                    if (mounted) setState(() {});
-                  },
+                  onToggleComplete: () => _handleToggleComplete(event),
+                  onDelete: () => _handleDelete(event),
                 );
               },
             ),
@@ -285,6 +330,39 @@ class _CalendarScreenState extends State<CalendarScreen> {
         label: const Text(
           'Nueva Tarea',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+
+  // Se muestra en vez del calendario si la carga inicial de eventos falló,
+  // con un botón para reintentar en vez de dejar la pantalla vacía o
+  // colgada sin ninguna explicación.
+  Widget _buildLoadErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.cloud_off, size: 60, color: Colors.grey.shade400),
+            const SizedBox(height: 16),
+            Text(
+              _loadError!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.grey, fontSize: 15),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _loadInitialData,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reintentar'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.indigo,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
         ),
       ),
     );

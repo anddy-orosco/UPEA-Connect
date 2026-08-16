@@ -1,57 +1,63 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/chat_message_model.dart';
+import 'api_service.dart';
 
 /// Servicio del chat con IA.
 /// Vive en lib/services/ai_chat_service.dart
 ///
-/// MODO ACTUAL: mock (respuestas simuladas), para probar la pantalla
-/// sin depender del backend todavía.
-///
-/// Cuando el endpoint /api/ai/chat esté listo, solo hay que reemplazar
-/// el contenido de sendMessage() por una llamada http.post, igual que
-/// en api_service.dart. La firma de la función (lo que recibe y devuelve)
-/// se queda igual, así que no hay que tocar chat_screen.dart.
+/// Ya conectado al backend real (/api/ai/chat -> Gemini).
+/// Reemplaza la versión mock anterior; la firma de sendMessage() se
+/// mantiene igual, así que chat_screen.dart no necesita cambios.
 class AiChatService {
   static Future<ChatMessage> sendMessage(String userText) async {
-    // Simula latencia de red
-    await Future.delayed(const Duration(milliseconds: 700));
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
 
-    final lower = userText.toLowerCase();
-
-    // Simulación simple de detección de intención "crear evento"
-    if (lower.contains('crea un evento') || lower.contains('crear evento')) {
+    if (token == null) {
       return ChatMessage(
-        text: 'Encontré estos datos para tu evento:',
+        text: 'Tu sesión expiró. Vuelve a iniciar sesión para usar el chat.',
         isUser: false,
-        action: ChatAction(
-          type: 'crear_evento',
-          data: {
-            'titulo': 'Examen de física',
-            'fecha': '2026-08-20T10:00:00',
-            'tipo': 'EXAM',
-          },
-        ),
       );
     }
 
-    if (lower.contains('crea una nota') || lower.contains('crear nota')) {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiService.baseUrl}/ai/chat'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'message': userText}),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode != 200) {
+        return ChatMessage(
+          text: data['message'] ?? 'El asistente no pudo responder. Intenta de nuevo.',
+          isUser: false,
+        );
+      }
+
+      final String reply = data['reply'] ?? '';
+      ChatAction? action;
+
+      if (data['action'] != null) {
+        final actionJson = data['action'] as Map<String, dynamic>;
+        action = ChatAction(
+          type: actionJson['type'] as String,
+          data: Map<String, dynamic>.from(actionJson['data'] as Map),
+        );
+      }
+
+      return ChatMessage(text: reply, isUser: false, action: action);
+    } catch (e) {
       return ChatMessage(
-        text: 'Encontré estos datos para tu apunte:',
+        text: 'No pude conectarme con la IA. Revisa tu conexión e intenta de nuevo.',
         isUser: false,
-        action: ChatAction(
-          type: 'crear_nota',
-          data: {
-            'titulo': 'Nuevo apunte',
-            'materia': 'General',
-          },
-        ),
       );
     }
-
-    // Respuesta conversacional genérica (mock)
-    return ChatMessage(
-      text: 'Esto es una respuesta de prueba. Cuando conectemos el '
-          'backend, aquí llegará la respuesta real de la IA.',
-      isUser: false,
-    );
   }
 }
