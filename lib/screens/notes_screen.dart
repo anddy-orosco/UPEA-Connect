@@ -7,6 +7,7 @@ import '../theme/colors.dart';
 import '../models/note_model.dart';
 import '../models/note_page_model.dart';
 import '../services/notes_service.dart';
+import '../services/api_service.dart';
 import '../services/pptx_export_service.dart';
 import '../widgets/rich_text_toolbar.dart';
 import '../widgets/a4_page_canvas.dart';
@@ -52,10 +53,48 @@ class _NotesScreenState extends State<NotesScreen> {
     ).toList();
   }
 
+  // El listado (GET /notes) no trae páginas ni elementos flotantes, así que
+  // antes de abrir el editor sobre una nota existente hay que pedir la nota
+  // completa con GET /notes/:id. Si esa carga falla, no se abre el editor.
   Future<void> _createOrEditNote({NoteModel? existingNote}) async {
+    NoteModel? noteToEdit = existingNote;
+
+    if (existingNote != null) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.azulPrincipal),
+          ),
+        ),
+      );
+
+      try {
+        noteToEdit = await NotesService.getNoteById(existingNote.id);
+      } catch (e) {
+        if (mounted) {
+          Navigator.of(context, rootNavigator: true).pop(); // cierra el loading
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('No se pudo cargar la nota: $e'),
+              backgroundColor: AppColors.rojoAlerta,
+            ),
+          );
+        }
+        return;
+      }
+
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop(); // cierra el loading
+      }
+    }
+
+    if (!mounted) return;
+
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => NoteEditorScreen(note: existingNote),
+        builder: (context) => NoteEditorScreen(note: noteToEdit),
       ),
     );
 
@@ -319,6 +358,11 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   TextAlign _textAlign = TextAlign.left;
   bool _isLoading = false;
 
+  // Subidas de imagen en curso (id del elemento -> Future de la subida).
+  // _saveNote espera a que todas terminen antes de guardar, para no mandar
+  // al backend una ruta local en vez de la URL subida.
+  final Map<String, Future<void>> _pendingImageUploads = {};
+
   @override
   void initState() {
     super.initState();
@@ -384,23 +428,84 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     });
   }
 
+  // Al elegir la imagen, se agrega de inmediato al lienzo con la ruta local
+  // (para que se vea al instante mientras sube) y en paralelo se suben sus
+  // bytes al backend. Cuando la subida termina, se reemplaza la ruta local
+  // por la URL pública, que es la que realmente se guarda al llamar a
+  // NotesService.saveNote. Usar bytes (XFile.readAsBytes) en vez de un
+  // dart:io File hace que esto funcione igual en celular y en web.
   Future<void> _addFloatingImage() async {
     final picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
-    if (image != null) {
-      setState(() {
-        _pages[_currentPage].floatingElements.add(
-          FloatingElement(
-            id: DateTime.now().millisecondsSinceEpoch.toString(),
-            position: const Offset(50, 100),
-            width: 200,
-            height: 150,
-            imagePath: image.path,
-            isImage: true,
+    if (image == null) return;
+
+    final elementId = DateTime.now().millisecondsSinceEpoch.toString();
+
+    setState(() {
+      _pages[_currentPage].floatingElements.add(
+        FloatingElement(
+          id: elementId,
+          position: const Offset(50, 100),
+          width: 200,
+          height: 150,
+          imagePath: image.path,
+          isImage: true,
+        ),
+      );
+    });
+
+    final uploadFuture = _uploadFloatingImage(
+      currentPageAtStart: _currentPage,
+      elementId: elementId,
+      image: image,
+    );
+    _pendingImageUploads[elementId] = uploadFuture;
+    try {
+      await uploadFuture;
+    } catch (_) {
+      // El error ya se le mostró al usuario dentro de _uploadFloatingImage;
+      // acá solo evitamos que la excepción se propague sin manejar.
+    } finally {
+      _pendingImageUploads.remove(elementId);
+    }
+  }
+
+  Future<void> _uploadFloatingImage({
+    required int currentPageAtStart,
+    required String elementId,
+    required XFile image,
+  }) async {
+    try {
+      final bytes = await image.readAsBytes();
+      final uploadedUrl = await ApiService.uploadImage(
+        bytes,
+        image.name,
+        mimeType: image.mimeType,
+      );
+
+      if (!mounted) return;
+
+      final elements = _pages[currentPageAtStart].floatingElements;
+      final idx = elements.indexWhere((e) => e.id == elementId);
+
+      if (idx != -1) {
+        setState(() {
+          elements[idx].imagePath = uploadedUrl;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No se pudo subir la imagen: $e'),
+            backgroundColor: AppColors.rojoAlerta,
           ),
         );
-      });
+      }
+      // Se relanza para que _saveNote sepa (vía Future.wait) que esta
+      // subida en particular falló y pueda descartar esa imagen al guardar.
+      rethrow;
     }
   }
 
@@ -476,7 +581,45 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     });
 
     try {
+      // Si hay imágenes subiéndose todavía, hay que esperarlas: si se
+      // guarda antes de tiempo, la nota se manda con la ruta local del
+      // celular en vez de la URL, y el backend la rechaza por no ser una
+      // URL válida. Se ignoran los errores acá porque _uploadFloatingImage
+      // ya le avisó al usuario cuál imagen falló; lo que importa es que,
+      // para cuando sigamos, ya no quede ninguna subida en curso.
+      if (_pendingImageUploads.isNotEmpty) {
+        await Future.wait(
+          _pendingImageUploads.values.toList(),
+          eagerError: false,
+        ).catchError((_) => <void>[]);
+      }
+
+      // Cualquier imagen que siga sin una URL real (http/https) es porque
+      // su subida falló y no se pudo reintentar a tiempo: se descarta para
+      // no romper la validación del backend, y se avisa al usuario.
+      var removedFailedImage = false;
+      for (final page in _pages) {
+        final before = page.floatingElements.length;
+        page.floatingElements.removeWhere(
+          (e) => e.isImage && !(e.imagePath?.startsWith('http') ?? false),
+        );
+        if (page.floatingElements.length != before) {
+          removedFailedImage = true;
+        }
+      }
+
+      if (removedFailedImage && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Una imagen no se pudo subir y no se guardó'),
+            backgroundColor: AppColors.rojoAlerta,
+          ),
+        );
+      }
+
       final now = DateTime.now();
+      final isNew = widget.note == null;
+
       final note = NoteModel(
         id: widget.note?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
         title: _titleController.text.trim(),
@@ -489,12 +632,14 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         pages: _pages, // Se envían las páginas con sus textos e imágenes flotantes
       );
 
-      await NotesService.saveNote(note);
+      // isNew le dice a NotesService.saveNote si debe hacer POST (nota
+      // nueva) o PUT sobre note.id (edición de una nota existente).
+      await NotesService.saveNote(note, isNew: isNew);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(widget.note == null ? '✓ Nota creada' : '✓ Nota actualizada'),
+            content: Text(isNew ? '✓ Nota creada' : '✓ Nota actualizada'),
             backgroundColor: AppColors.verdeExito,
             duration: const Duration(seconds: 1),
           ),
