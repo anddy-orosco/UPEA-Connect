@@ -63,7 +63,7 @@ class DrawerMenu extends StatelessWidget {
                       )
                           : Container(
                         color: AppColors.grisClaro,
-                        child: Icon(
+                        child: const Icon(
                           Icons.person,
                           size: 40,
                           color: AppColors.azulPrincipal,
@@ -120,7 +120,7 @@ class DrawerMenu extends StatelessWidget {
                   ),
                   _buildMenuItem(
                     icon: Icons.calendar_month,
-                    label: 'Calendario Académico', // <-- Cambiado de 'Horario' a 'Calendario Académico'
+                    label: 'Calendario Académico',
                     index: 3,
                   ),
                   _buildMenuItem(
@@ -129,8 +129,8 @@ class DrawerMenu extends StatelessWidget {
                     index: 4,
                   ),
                   _buildMenuItem(
-                    icon: Icons.assignment,
-                    label: 'Tareas',
+                    icon: Icons.calculate,
+                    label: 'Calculadora de Notas',
                     index: 5,
                   ),
                   const Divider(

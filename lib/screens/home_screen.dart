@@ -1,5 +1,4 @@
 ﻿import 'dart:io';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/colors.dart';
@@ -7,7 +6,8 @@ import '../models/user_model.dart';
 import 'profile_screen.dart';
 import 'account_switcher.dart';
 import 'notes_screen.dart';
-import 'calendar_screen.dart'; // <-- Carga de la nueva pantalla del calendario
+import 'calendar_screen.dart';
+import 'grade_calculator_screen.dart';
 import '../widgets/drawer_menu.dart';
 import 'chat_screen.dart';
 
@@ -45,9 +45,9 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       });
 
-      print('✅ Usuario cargado: $nombre');
+      debugPrint('✅ Usuario cargado: $nombre');
     } catch (e) {
-      print('❌ Error cargando usuario: $e');
+      debugPrint('❌ Error cargando usuario: $e');
     }
   }
 
@@ -125,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 4:
         return 'Mis Apuntes';
       case 5:
-        return 'Tareas';
+        return 'Calculadora de Notas';
       case 6:
         return 'Asistente IA';
       default:
@@ -161,41 +161,13 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         );
       case 3:
-        return const CalendarScreen(); // <-- Integración de la vista del Calendario
+        return const CalendarScreen();
       case 4:
         return const NotesScreen();
       case 5:
-        return const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.assignment,
-                size: 80,
-                color: AppColors.azulPrincipal,
-              ),
-              SizedBox(height: 20),
-              Text(
-                'Pantalla de Tareas',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.azulOscuro,
-                ),
-              ),
-              SizedBox(height: 10),
-              Text(
-                'Próximamente...',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-        );
+        return const GradeCalculatorScreen();
       case 6:
-        return const ChatScreen();  
+        return const ChatScreen();
       default:
         return _buildHomeContent();
     }
@@ -203,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHomeContent() {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -211,155 +183,301 @@ class _HomeScreenState extends State<HomeScreen> {
             AppColors.azulPrincipal,
             AppColors.blanco,
           ],
-          stops: const [0.0, 0.3],
+          stops: [0.0, 0.25],
         ),
       ),
-      child: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            // Avatar de Perfil
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.blanco,
+                border: Border.all(
                   color: AppColors.blanco,
-                  border: Border.all(
-                    color: AppColors.azulPrincipal,
-                    width: 3,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.azulOscuro.withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
+                  width: 3,
                 ),
-                child: ClipOval(
-                  child: _currentUser!.fotoPath != null
-                      ? Image.file(
-                    File(_currentUser!.fotoPath!),
-                    fit: BoxFit.cover,
-                  )
-                      : Icon(
-                    Icons.person,
-                    size: 60,
-                    color: AppColors.azulPrincipal,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.azulOscuro.withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
                   ),
+                ],
+              ),
+              child: ClipOval(
+                child: _currentUser!.fotoPath != null
+                    ? Image.file(
+                  File(_currentUser!.fotoPath!),
+                  fit: BoxFit.cover,
+                )
+                    : const Icon(
+                  Icons.person,
+                  size: 50,
+                  color: AppColors.azulPrincipal,
                 ),
               ),
-              const SizedBox(height: 20),
-              Text(
-                '¡Bienvenido, ${_currentUser!.nombre}!',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.azulOscuro,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '¡Bienvenido, ${_currentUser!.nombre}!',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: AppColors.azulOscuro,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _currentUser!.carrera.isNotEmpty
+                  ? '${_currentUser!.carrera} • Semestre ${_currentUser!.semestre}'
+                  : 'Estudiante Universitario',
+              style: TextStyle(
+                color: AppColors.azulOscuro.withOpacity(0.7),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+
+            // 🤖 BOTÓN DESTACADO Y LARGO PARA LA IA EN EL CENTRO
+            _buildAiHeroButton(),
+
+            const SizedBox(height: 24),
+
+            // TÍTULO DE SECCIÓN
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Herramientas Académicas',
+                style: TextStyle(
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  color: AppColors.azulOscuro,
                 ),
-                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 10),
-              Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                child: Text(
-                  _currentUser!.carrera.isNotEmpty
-                      ? _currentUser!.carrera
-                      : 'Carrera no especificada',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.azulOscuro.withOpacity(0.7),
+            ),
+            const SizedBox(height: 12),
+
+            // 🛠️ LAS 3 HERRAMIENTAS PRINCIPALES EN ORDEN
+            _buildFeatureCard(
+              title: 'Calendario Académico',
+              subtitle: 'Fechas importantes y exámenes',
+              icon: Icons.calendar_month_rounded,
+              color: Colors.blue.shade600,
+              index: 3,
+            ),
+            const SizedBox(height: 10),
+
+            _buildFeatureCard(
+              title: 'Mis Apuntes',
+              subtitle: 'Tus notas y resúmenes de clase',
+              icon: Icons.note_alt_rounded,
+              color: Colors.amber.shade700,
+              index: 4,
+            ),
+            const SizedBox(height: 10),
+
+            _buildFeatureCard(
+              title: 'Calculadora de Notas',
+              subtitle: 'Control de promedio y nota requerida',
+              icon: Icons.calculate_rounded,
+              color: Colors.teal.shade600,
+              index: 5,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // BOTÓN DESTACADO Y PROMINENTE PARA EL CHAT IA
+  Widget _buildAiHeroButton() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF4F46E5).withOpacity(0.35),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: () {
+            setState(() {
+              _selectedIndex = 6; // Navegar a Asistente IA
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
                   ),
-                  textAlign: TextAlign.center,
+                  child: const Icon(
+                    Icons.smart_toy_rounded,
+                    color: Colors.white,
+                    size: 30,
+                  ),
                 ),
-              ),
-              Text(
-                _currentUser!.semestre.isNotEmpty
-                    ? 'Semestre: ${_currentUser!.semestre}'
-                    : 'Semestre no especificado',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.azulOscuro.withOpacity(0.7),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'Pregúntale a la IA',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.amberAccent,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              'ASISTENTE',
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Resuelve tus dudas académicas al instante',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 30),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Wrap(
-                  alignment: WrapAlignment.spaceEvenly,
-                  spacing: 12,
-                  runSpacing: 16,
-                  children: [
-                  _buildQuickAccessCard(
-                      icon: Icons.note,
-                      label: 'Apuntes',
-                      index: 4,
-                    ),
-                  _buildQuickAccessCard(
-                      icon: Icons.calendar_month,
-                      label: 'Calendario',
-                      index: 3,
-                    ),
-                  _buildQuickAccessCard(
-                      icon: Icons.assignment,
-                      label: 'Tareas',
-                      index: 5,
-                    ),
-                  _buildQuickAccessCard(
-                      icon: Icons.smart_toy,
-                      label: 'Pregúntale a la IA',
-                      index: 6,
-                    ),
-                  ],
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: Colors.white,
+                  size: 18,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildQuickAccessCard({
+  // TARJETAS PARA LAS 3 HERRAMIENTAS PRINCIPALES
+  Widget _buildFeatureCard({
+    required String title,
+    required String subtitle,
     required IconData icon,
-    required String label,
+    required Color color,
     required int index,
   }) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedIndex = index;
-        });
-      },
-      child: Container(
-        width: 100,
-        padding: const EdgeInsets.symmetric(vertical: 15),
-        decoration: BoxDecoration(
-          color: AppColors.blanco,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
-              blurRadius: 5,
-              offset: const Offset(0, 2),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            setState(() {
+              _selectedIndex = index;
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(14.0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: color,
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.grey.shade400,
+                  size: 22,
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              size: 30,
-              color: AppColors.azulPrincipal,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
