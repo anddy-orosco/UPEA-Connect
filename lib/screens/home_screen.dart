@@ -1,9 +1,4 @@
-<<<<<<< Updated upstream
-﻿import 'dart:io';
-import 'dart:convert';
-=======
 import 'dart:io';
->>>>>>> Stashed changes
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/colors.dart';
@@ -11,7 +6,8 @@ import '../models/user_model.dart';
 import 'profile_screen.dart';
 import 'account_switcher.dart';
 import 'notes_screen.dart';
-import 'calendar_screen.dart'; // <-- Carga de la nueva pantalla del calendario
+import 'calendar_screen.dart';
+import 'grade_calculator_screen.dart';
 import '../widgets/drawer_menu.dart';
 import 'chat_screen.dart';
 
@@ -49,9 +45,9 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       });
 
-      print('✅ Usuario cargado: $nombre');
+      debugPrint('✅ Usuario cargado: $nombre');
     } catch (e) {
-      print('❌ Error cargando usuario: $e');
+      debugPrint('❌ Error cargando usuario: $e');
     }
   }
 
@@ -129,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 4:
         return 'Mis Apuntes';
       case 5:
-        return 'Tareas';
+        return 'Calculadora de Notas';
       case 6:
         return 'Asistente IA';
       default:
@@ -165,41 +161,13 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         );
       case 3:
-        return const CalendarScreen(); // <-- Integración de la vista del Calendario
+        return const CalendarScreen();
       case 4:
         return const NotesScreen();
       case 5:
-        return const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.assignment,
-                size: 80,
-                color: AppColors.azulPrincipal,
-              ),
-              SizedBox(height: 20),
-              Text(
-                'Pantalla de Tareas',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.azulOscuro,
-                ),
-              ),
-              SizedBox(height: 10),
-              Text(
-                'Próximamente...',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-        );
+        return const GradeCalculatorScreen();
       case 6:
-        return const ChatScreen();  
+        return const ChatScreen();
       default:
         return _buildHomeContent();
     }
@@ -207,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHomeContent() {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -215,162 +183,119 @@ class _HomeScreenState extends State<HomeScreen> {
             AppColors.azulPrincipal,
             AppColors.blanco,
           ],
-          stops: const [0.0, 0.3],
+          stops: [0.0, 0.25],
         ),
       ),
-      child: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.blanco,
-                  border: Border.all(
-                    color: AppColors.azulPrincipal,
-                    width: 3,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.azulOscuro.withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: ClipOval(
-                  child: _currentUser!.fotoPath != null
-                      ? Image.file(
-                    File(_currentUser!.fotoPath!),
-                    fit: BoxFit.cover,
-                  )
-                      : Icon(
-                    Icons.person,
-                    size: 60,
-                    color: AppColors.azulPrincipal,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                '¡Bienvenido, ${_currentUser!.nombre}!',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.azulOscuro,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
-              Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                child: Text(
-                  _currentUser!.carrera.isNotEmpty
-                      ? _currentUser!.carrera
-                      : 'Carrera no especificada',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.azulOscuro.withOpacity(0.7),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              Text(
-                _currentUser!.semestre.isNotEmpty
-                    ? 'Semestre: ${_currentUser!.semestre}'
-                    : 'Semestre no especificado',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.azulOscuro.withOpacity(0.7),
-                ),
-              ),
-              const SizedBox(height: 30),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Wrap(
-                  alignment: WrapAlignment.spaceEvenly,
-                  spacing: 12,
-                  runSpacing: 16,
-                  children: [
-                  _buildQuickAccessCard(
-                      icon: Icons.note,
-                      label: 'Apuntes',
-                      index: 4,
-                    ),
-                  _buildQuickAccessCard(
-                      icon: Icons.calendar_month,
-                      label: 'Calendario',
-                      index: 3,
-                    ),
-                  _buildQuickAccessCard(
-                      icon: Icons.assignment,
-                      label: 'Tareas',
-                      index: 5,
-                    ),
-                  _buildQuickAccessCard(
-                      icon: Icons.smart_toy,
-                      label: 'Pregúntale a la IA',
-                      index: 6,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickAccessCard({
-    required IconData icon,
-    required String label,
-    required int index,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedIndex = index;
-        });
-      },
-      child: Container(
-        width: 100,
-        padding: const EdgeInsets.symmetric(vertical: 15),
-        decoration: BoxDecoration(
-          color: AppColors.blanco,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
-              blurRadius: 5,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            Icon(
-              icon,
-              size: 30,
-              color: AppColors.azulPrincipal,
+            const SizedBox(height: 10),
+            // Avatar de Perfil
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.blanco,
+                border: Border.all(
+                  color: AppColors.blanco,
+                  width: 3,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.azulOscuro.withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: _currentUser!.fotoPath != null
+                    ? Image.file(
+                  File(_currentUser!.fotoPath!),
+                  fit: BoxFit.cover,
+                )
+                    : const Icon(
+                  Icons.person,
+                  size: 50,
+                  color: AppColors.azulPrincipal,
+                ),
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
-              label,
-              style: const TextStyle(
+              '¡Bienvenido, ${_currentUser!.nombre}!',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: AppColors.azulOscuro,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _currentUser!.carrera.isNotEmpty
+                  ? '${_currentUser!.carrera} • Semestre ${_currentUser!.semestre}'
+                  : 'Estudiante Universitario',
+              style: TextStyle(
+                color: AppColors.azulOscuro.withOpacity(0.7),
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+
+            // 🤖 BOTÓN DESTACADO Y LARGO PARA LA IA EN EL CENTRO
+            _buildAiHeroButton(),
+
+            const SizedBox(height: 24),
+
+            // TÍTULO DE SECCIÓN
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Herramientas Académicas',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.azulOscuro,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // 🛠️ LAS 3 HERRAMIENTAS PRINCIPALES EN ORDEN
+            _buildFeatureCard(
+              title: 'Calendario Académico',
+              subtitle: 'Fechas importantes y exámenes',
+              icon: Icons.calendar_month_rounded,
+              color: Colors.blue.shade600,
+              index: 3,
+            ),
+            const SizedBox(height: 10),
+
+            _buildFeatureCard(
+              title: 'Mis Apuntes',
+              subtitle: 'Tus notas y resúmenes de clase',
+              icon: Icons.note_alt_rounded,
+              color: Colors.amber.shade700,
+              index: 4,
+            ),
+            const SizedBox(height: 10),
+
+            _buildFeatureCard(
+              title: 'Calculadora de Notas',
+              subtitle: 'Control de promedio y nota requerida',
+              icon: Icons.calculate_rounded,
+              color: Colors.teal.shade600,
+              index: 5,
             ),
           ],
         ),
       ),
     );
   }
-<<<<<<< Updated upstream
-}
-=======
 
   // BOTÓN DESTACADO Y PROMINENTE PARA EL CHAT IA
   Widget _buildAiHeroButton() {
@@ -563,4 +488,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
->>>>>>> Stashed changes
