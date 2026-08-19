@@ -6,6 +6,7 @@ import '../services/calendar_service.dart';
 import '../services/notes_service.dart';
 import '../models/event_model.dart';
 import '../models/note_model.dart';
+import '../models/note_page_model.dart';
 
 /// Pantalla de chat con la IA.
 /// Vive en lib/screens/chat_screen.dart
@@ -104,7 +105,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 if (index == _messages.length) {
                   return _buildTypingIndicator();
                 }
-                return _buildMessageBubble(_messages[index]);
+                return _buildMessageBubble(_messages[index], index);
               },
             ),
           ),
@@ -114,7 +115,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildMessageBubble(ChatMessage message) {
+  Widget _buildMessageBubble(ChatMessage message, int index) {
     final isUser = message.isUser;
 
     return Align(
@@ -148,7 +149,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             if (message.action != null) ...[
               const SizedBox(height: 10),
-              _buildActionCard(message.action!),
+              _buildActionCard(message.action!, index),
             ],
           ],
         ),
@@ -156,7 +157,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildActionCard(ChatAction action) {
+  Widget _buildActionCard(ChatAction action, int messageIndex) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -167,18 +168,24 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Se cambió de Row a Column: los valores (sobre todo "contenido",
+          // que puede ser un párrafo largo) no caben junto a la etiqueta
+          // en una sola línea y se salían de la tarjeta.
           ...action.data.entries.map(
             (e) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     e.key,
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     '${e.value}',
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -214,7 +221,7 @@ class _ChatScreenState extends State<ChatScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed: () => _descartarAccion(messageIndex),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.grey.shade700,
                     padding: const EdgeInsets.symmetric(vertical: 8),
@@ -237,13 +244,29 @@ class _ChatScreenState extends State<ChatScreen> {
   // Reemplaza el TODO anterior ("pendiente backend").
   // ─────────────────────────────────────────────────────────────
 
+  // Quita la tarjeta de acción de un mensaje ya mostrado, sin borrar el
+  // mensaje ni el texto de la IA. Como ChatAction/ChatMessage.action es
+  // 'final', no se puede modificar in-place: se reemplaza el mensaje en
+  // la lista por uno idéntico pero con action: null.
+  void _descartarAccion(int messageIndex) {
+    final anterior = _messages[messageIndex];
+    setState(() {
+      _messages[messageIndex] = ChatMessage(
+        text: anterior.text,
+        isUser: anterior.isUser,
+        action: null,
+      );
+    });
+  }
+
   Future<void> _confirmarAccion(ChatAction action) async {
     setState(() => _isLoading = true);
 
     try {
       if (action.type == 'crear_evento') {
         await _crearEventoDesdeAccion(action);
-      } else if (action.type == 'crear_apunte') {
+      } else if (action.type == 'crear_nota') {
+        // FIX: el backend manda "crear_nota", no "crear_apunte".
         await _crearApunteDesdeAccion(action);
       } else {
         throw Exception('Tipo de acción desconocido: ${action.type}');
@@ -311,7 +334,8 @@ class _ChatScreenState extends State<ChatScreen> {
     final titulo = (d['titulo'] ?? d['title'] ?? 'Apunte sin título').toString();
     final contenido =
         (d['contenido'] ?? d['content'] ?? d['resumen'] ?? '').toString();
-    final curso = (d['curso'] ?? d['courseName'])?.toString();
+    // FIX: el backend manda la clave "materia" (no "curso" ni "courseName").
+    final curso = (d['materia'] ?? d['curso'] ?? d['courseName'])?.toString();
 
     final nota = NoteModel(
       id: '',
@@ -320,6 +344,16 @@ class _ChatScreenState extends State<ChatScreen> {
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
       courseName: curso,
+      // FIX: el editor (NoteEditorScreen / A4PageCanvas) lee el texto desde
+      // pages[0].textContent, no desde 'content'. Sin esto, NoteModel usa
+      // su default ([NotePageModel()], vacía) y la nota se guarda con
+      // 'content' lleno pero la página en blanco -> el editor la muestra vacía.
+      pages: [
+        NotePageModel(
+          pageIndex: 0,
+          textContent: contenido,
+        ),
+      ],
     );
 
     await NotesService.saveNote(nota, isNew: true);
