@@ -86,19 +86,21 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Selector de Modalidad de Calificación
-            _buildModeSelector(),
+            _buildModeSelector(colorScheme),
             const SizedBox(height: 12),
 
             // Tarjeta de Resumen / Estado
-            _buildScoreCard(),
+            _buildScoreCard(colorScheme),
             const SizedBox(height: 16),
 
             // Advertencia de Ponderación
@@ -132,18 +134,18 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Evaluaciones',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.indigo,
+                    color: colorScheme.primary,
                   ),
                 ),
                 TextButton.icon(
                   onPressed: _addNewEvaluationDialog,
-                  icon: const Icon(Icons.add_circle_outline, color: Colors.indigo),
-                  label: const Text('Agregar Ítem'),
+                  icon: Icon(Icons.add_circle_outline, color: colorScheme.primary),
+                  label: Text('Agregar Ítem', style: TextStyle(color: colorScheme.primary)),
                 ),
               ],
             ),
@@ -155,7 +157,7 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
               physics: const NeverScrollableScrollPhysics(),
               itemCount: _evaluations.length,
               itemBuilder: (context, index) {
-                return _buildEvaluationTile(_evaluations[index], index);
+                return _buildEvaluationTile(_evaluations[index], index, colorScheme);
               },
             ),
 
@@ -174,12 +176,13 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
                       child: Icon(Icons.star, color: Colors.black87),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Puntos Extra:',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
                         ),
                       ),
                     ),
@@ -189,11 +192,21 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
                         controller: _extraController,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         textAlign: TextAlign.center,
+                        style: TextStyle(color: colorScheme.onSurface),
                         decoration: InputDecoration(
                           hintText: '+0 pts',
                           contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: colorScheme.onSurface.withOpacity(0.2)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: colorScheme.onSurface.withOpacity(0.2)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: colorScheme.primary),
                           ),
                         ),
                         onChanged: (val) {
@@ -215,13 +228,13 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
   }
 
   // Interruptor para cambiar el modo de ingreso de nota
-  Widget _buildModeSelector() {
+  Widget _buildModeSelector(ColorScheme colorScheme) {
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.indigo.shade100),
+        border: Border.all(color: colorScheme.primary.withOpacity(0.25)),
       ),
       child: Row(
         children: [
@@ -229,9 +242,9 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
             child: ChoiceChip(
               label: const Center(child: Text('Nota Directa (ej. 20/25)')),
               selected: !_useScale100,
-              selectedColor: Colors.indigo.shade600,
+              selectedColor: colorScheme.primary,
               labelStyle: TextStyle(
-                color: !_useScale100 ? Colors.white : Colors.indigo,
+                color: !_useScale100 ? colorScheme.onPrimary : colorScheme.primary,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
               ),
@@ -245,9 +258,9 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
             child: ChoiceChip(
               label: const Center(child: Text('Sobre 100 (ej. 80/100)')),
               selected: _useScale100,
-              selectedColor: Colors.indigo.shade600,
+              selectedColor: colorScheme.primary,
               labelStyle: TextStyle(
-                color: _useScale100 ? Colors.white : Colors.indigo,
+                color: _useScale100 ? colorScheme.onPrimary : colorScheme.primary,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
               ),
@@ -262,13 +275,15 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
   }
 
   // Tarjeta de estado y cálculo
-  Widget _buildScoreCard() {
+  Widget _buildScoreCard(ColorScheme colorScheme) {
     final req = _requiredOnPending;
     final total = _earnedTotal;
 
-    // Determinación del estado académico
+    // Determinación del estado académico. statusBgColor por defecto sigue
+    // el color primario del tema activo (antes era Colors.indigo fijo, por
+    // lo que esta tarjeta siempre se veía azul sin importar el tema).
     String statusText = '';
-    Color statusBgColor = Colors.indigo.shade800;
+    Color statusBgColor = colorScheme.primary;
 
     if (_pendingWeight == 0) {
       // Si no quedan evaluaciones pendientes
@@ -294,7 +309,7 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [statusBgColor, Colors.indigo.shade600],
+          colors: [statusBgColor, colorScheme.secondary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -375,9 +390,9 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  const Text(
                     'para aprobar directamente con 51 pts.',
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
                   ),
                 ],
               ],
@@ -393,7 +408,7 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
   }
 
   // Fila para cada ítem de evaluación
-  Widget _buildEvaluationTile(EvaluationItem item, int index) {
+  Widget _buildEvaluationTile(EvaluationItem item, int index, ColorScheme colorScheme) {
     final earned = item.getEarnedPoints(_useScale100);
 
     return Card(
@@ -409,15 +424,16 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
                 children: [
                   Text(
                     item.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     'Ponderación: ${item.maxWeight.toStringAsFixed(1)} pts',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                    style: TextStyle(color: colorScheme.onSurface.withOpacity(0.6), fontSize: 12),
                   ),
                 ],
               ),
@@ -429,12 +445,22 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
               child: TextField(
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 textAlign: TextAlign.center,
+                style: TextStyle(color: colorScheme.onSurface),
                 decoration: InputDecoration(
                   hintText: _useScale100 ? '0-100' : '0-${item.maxWeight.toStringAsFixed(0)}',
                   labelText: _useScale100 ? 'Sobre 100' : 'Puntos',
                   contentPadding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: colorScheme.onSurface.withOpacity(0.2)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: colorScheme.onSurface.withOpacity(0.2)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: colorScheme.primary),
                   ),
                 ),
                 onChanged: (val) {
@@ -453,15 +479,15 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
                 children: [
                   Text(
                     earned.toStringAsFixed(1),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Colors.indigo,
+                      color: colorScheme.primary,
                       fontSize: 15,
                     ),
                   ),
                   Text(
                     '/${item.maxWeight.toStringAsFixed(0)}',
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                    style: TextStyle(color: colorScheme.onSurface.withOpacity(0.5), fontSize: 11),
                   ),
                 ],
               ),
@@ -469,7 +495,7 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
 
             // Opciones del ítem
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, size: 20),
+              icon: Icon(Icons.more_vert, size: 20, color: colorScheme.onSurface),
               onSelected: (value) {
                 if (value == 'edit') {
                   _editEvaluationDialog(item);

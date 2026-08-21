@@ -88,6 +88,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final placeholderBg = isDark ? Colors.white.withOpacity(0.07) : AppColors.grisClaro;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -105,12 +109,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: AppColors.azulPrincipal,
+                      color: colorScheme.primary,
                       width: 3,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.azulOscuro.withOpacity(0.3),
+                        color: colorScheme.primary.withOpacity(0.3),
                         blurRadius: 10,
                         offset: const Offset(0, 5),
                       ),
@@ -123,11 +127,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       fit: BoxFit.cover,
                     )
                         : Container(
-                      color: AppColors.grisClaro,
+                      color: placeholderBg,
                       child: Icon(
                         Icons.person,
                         size: 60,
-                        color: AppColors.azulPrincipal,
+                        color: colorScheme.primary,
                       ),
                     ),
                   ),
@@ -140,16 +144,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       width: 35,
                       height: 35,
                       decoration: BoxDecoration(
-                        color: AppColors.azulPrincipal,
+                        color: colorScheme.primary,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: AppColors.blanco,
+                          color: colorScheme.surface,
                           width: 2,
                         ),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.camera_alt,
-                        color: AppColors.blanco,
+                        color: colorScheme.onPrimary,
                         size: 20,
                       ),
                     ),
@@ -176,6 +180,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.person,
                     controller: _nombreController,
                     isEditing: _isEditing,
+                    colorScheme: colorScheme,
+                    placeholderBg: placeholderBg,
                   ),
                   const SizedBox(height: 16),
                   _buildInfoField(
@@ -184,6 +190,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.email,
                     controller: _emailController,
                     isEditing: _isEditing,
+                    colorScheme: colorScheme,
+                    placeholderBg: placeholderBg,
                   ),
                   const SizedBox(height: 16),
                   _buildInfoField(
@@ -192,6 +200,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.school,
                     controller: _carreraController,
                     isEditing: _isEditing,
+                    colorScheme: colorScheme,
+                    placeholderBg: placeholderBg,
                   ),
                   const SizedBox(height: 16),
                   _buildInfoField(
@@ -200,6 +210,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.grade,
                     controller: _semestreController,
                     isEditing: _isEditing,
+                    colorScheme: colorScheme,
+                    placeholderBg: placeholderBg,
                   ),
                 ],
               ),
@@ -222,8 +234,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: const Icon(Icons.edit),
                   label: const Text('Editar Perfil'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.azulPrincipal,
-                    foregroundColor: AppColors.blanco,
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 12,
@@ -291,6 +303,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required IconData icon,
     required TextEditingController controller,
     required bool isEditing,
+    required ColorScheme colorScheme,
+    required Color placeholderBg,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,21 +314,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Colors.grey[700],
+            color: colorScheme.onSurface.withOpacity(0.7),
           ),
         ),
         const SizedBox(height: 8),
         isEditing
             ? TextFormField(
           controller: controller,
+          style: TextStyle(color: colorScheme.onSurface),
           decoration: InputDecoration(
-            prefixIcon: Icon(icon, color: AppColors.azulPrincipal, size: 20),
+            prefixIcon: Icon(icon, color: colorScheme.primary, size: 20),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
             ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: colorScheme.onSurface.withOpacity(0.2)),
+            ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: AppColors.azulPrincipal),
+              borderSide: BorderSide(color: colorScheme.primary),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
@@ -329,18 +348,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             vertical: 12,
           ),
           decoration: BoxDecoration(
-            color: AppColors.grisClaro,
+            color: placeholderBg,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: colorScheme.onSurface.withOpacity(0.15)),
           ),
           child: Row(
             children: [
-              Icon(icon, color: AppColors.azulPrincipal, size: 20),
+              Icon(icon, color: colorScheme.primary, size: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   value.isEmpty ? 'No especificado' : value,
-                  style: const TextStyle(fontSize: 16),
+                  style: TextStyle(fontSize: 16, color: colorScheme.onSurface),
                 ),
               ),
             ],

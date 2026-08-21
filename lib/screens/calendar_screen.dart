@@ -126,15 +126,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final selectedEvents = _getEventsForDay(_selectedDay ?? _focusedDay);
     final upcomingEvent = _getNextUpcomingEvent();
 
+    final colorScheme = Theme.of(context).colorScheme;
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+    final cardColor = Theme.of(context).cardColor;
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: scaffoldBg,
       // Se eliminó el appBar para no duplicar la barra superior con HomeScreen
       body: _isLoading
-          ? const Center(
-        child: CircularProgressIndicator(color: Colors.indigo),
+          ? Center(
+        child: CircularProgressIndicator(color: colorScheme.primary),
       )
           : _loadError != null
-          ? _buildLoadErrorState()
+          ? _buildLoadErrorState(colorScheme)
           : Column(
         children: [
           // Widget de Cuenta Regresiva (Solo si hay eventos pendientes)
@@ -146,11 +150,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
             margin: const EdgeInsets.symmetric(
                 horizontal: 12.0, vertical: 4.0),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardColor,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.indigo.withOpacity(0.08),
+                  color: colorScheme.primary.withOpacity(0.08),
                   blurRadius: 15,
                   offset: const Offset(0, 5),
                 ),
@@ -190,25 +194,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
               headerStyle: HeaderStyle(
                 titleCentered: true,
                 formatButtonShowsNext: false,
-                titleTextStyle: const TextStyle(
+                titleTextStyle: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.indigo,
+                  color: colorScheme.primary,
                 ),
                 formatButtonDecoration: BoxDecoration(
-                  color: Colors.indigo.shade50,
+                  color: colorScheme.primary.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.indigo.shade200),
+                  border: Border.all(color: colorScheme.primary.withOpacity(0.4)),
                 ),
-                formatButtonTextStyle: const TextStyle(
-                  color: Colors.indigo,
+                formatButtonTextStyle: TextStyle(
+                  color: colorScheme.primary,
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
                 ),
                 leftChevronIcon:
-                const Icon(Icons.chevron_left, color: Colors.indigo),
+                Icon(Icons.chevron_left, color: colorScheme.primary),
                 rightChevronIcon:
-                const Icon(Icons.chevron_right, color: Colors.indigo),
+                Icon(Icons.chevron_right, color: colorScheme.primary),
               ),
               calendarStyle: CalendarStyle(
                 outsideDaysVisible: false,
@@ -216,36 +220,44 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   color: Colors.redAccent,
                   fontWeight: FontWeight.bold,
                 ),
-                defaultTextStyle:
-                const TextStyle(fontWeight: FontWeight.w500),
+                // Antes sin color explícito: table_calendar usaba negro por
+                // defecto, así que en el tema oscuro los números quedaban
+                // casi invisibles sobre el fondo negro/plomo.
+                defaultTextStyle: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: colorScheme.onSurface,
+                ),
+                outsideTextStyle: TextStyle(
+                  color: colorScheme.onSurface.withOpacity(0.35),
+                ),
                 todayDecoration: BoxDecoration(
-                  color: Colors.blue.shade300,
+                  color: colorScheme.secondary,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.blue.shade200,
+                      color: colorScheme.secondary.withOpacity(0.5),
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                todayTextStyle: const TextStyle(
-                  color: Colors.white,
+                todayTextStyle: TextStyle(
+                  color: colorScheme.onSecondary,
                   fontWeight: FontWeight.bold,
                 ),
-                selectedDecoration: const BoxDecoration(
-                  color: Colors.indigo,
+                selectedDecoration: BoxDecoration(
+                  color: colorScheme.primary,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.indigoAccent,
+                      color: colorScheme.primary.withOpacity(0.6),
                       blurRadius: 8,
-                      offset: Offset(0, 3),
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
-                selectedTextStyle: const TextStyle(
-                  color: Colors.white,
+                selectedTextStyle: TextStyle(
+                  color: colorScheme.onPrimary,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -275,15 +287,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 horizontal: 20.0, vertical: 8.0),
             child: Row(
               children: [
-                const Icon(Icons.assignment_outlined,
-                    color: Colors.indigo),
+                Icon(Icons.assignment_outlined, color: colorScheme.primary),
                 const SizedBox(width: 8),
                 Text(
                   'Tareas y Eventos (${selectedEvents.length})',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.indigo,
+                    color: colorScheme.primary,
                   ),
                 ),
               ],
@@ -298,12 +309,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.event_note,
-                      size: 50, color: Colors.grey.shade400),
+                      size: 50, color: colorScheme.onSurface.withOpacity(0.3)),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'No hay tareas ni eventos programados.',
                     style: TextStyle(
-                        color: Colors.grey, fontSize: 15),
+                        color: colorScheme.onSurface.withOpacity(0.6), fontSize: 15),
                   ),
                 ],
               ),
@@ -325,11 +336,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAddEventModal,
-        backgroundColor: Colors.indigo,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
+        backgroundColor: colorScheme.primary,
+        icon: Icon(Icons.add, color: colorScheme.onPrimary),
+        label: Text(
           'Nueva Tarea',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: colorScheme.onPrimary, fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -338,19 +349,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
   // Se muestra en vez del calendario si la carga inicial de eventos falló,
   // con un botón para reintentar en vez de dejar la pantalla vacía o
   // colgada sin ninguna explicación.
-  Widget _buildLoadErrorState() {
+  Widget _buildLoadErrorState(ColorScheme colorScheme) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.cloud_off, size: 60, color: Colors.grey.shade400),
+            Icon(Icons.cloud_off, size: 60, color: colorScheme.onSurface.withOpacity(0.3)),
             const SizedBox(height: 16),
             Text(
               _loadError!,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey, fontSize: 15),
+              style: TextStyle(color: colorScheme.onSurface.withOpacity(0.6), fontSize: 15),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
@@ -358,8 +369,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
               icon: const Icon(Icons.refresh),
               label: const Text('Reintentar'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.indigo,
-                foregroundColor: Colors.white,
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
               ),
             ),
           ],
