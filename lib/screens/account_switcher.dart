@@ -163,17 +163,20 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Cambiar Cuenta'),
-        backgroundColor: AppColors.azulPrincipal,
-        foregroundColor: AppColors.blanco,
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
         elevation: 0,
       ),
       body: _isLoading
-          ? const Center(
+          ? Center(
         child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(AppColors.azulPrincipal),
+          valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
         ),
       )
           : ListView(
@@ -182,7 +185,7 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
           const SizedBox(height: 10),
 
           // Cuenta actual (destacada)
-          _buildCurrentAccountCard(),
+          _buildCurrentAccountCard(colorScheme),
 
           const SizedBox(height: 30),
 
@@ -193,16 +196,17 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
                 width: 4,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: AppColors.azulPrincipal,
+                  color: colorScheme.primary,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'Otras cuentas guardadas',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ],
@@ -211,14 +215,14 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
 
           // Lista de cuentas guardadas
           if (_savedAccounts.isEmpty)
-            _buildEmptyState()
+            _buildEmptyState(colorScheme)
           else
-            ..._buildOtherAccountsList(),
+            ..._buildOtherAccountsList(colorScheme),
 
           const SizedBox(height: 24),
 
           // Botón para agregar nueva cuenta
-          _buildAddAccountButton(),
+          _buildAddAccountButton(colorScheme),
 
           const SizedBox(height: 16),
         ],
@@ -226,13 +230,13 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
     );
   }
 
-  Widget _buildCurrentAccountCard() {
+  Widget _buildCurrentAccountCard(ColorScheme colorScheme) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: AppColors.azulPrincipal,
+          color: colorScheme.primary,
           width: 2,
         ),
       ),
@@ -243,8 +247,8 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppColors.blanco,
-              AppColors.azulPrincipal.withOpacity(0.05),
+              colorScheme.surface,
+              colorScheme.primary.withOpacity(0.08),
             ],
           ),
         ),
@@ -252,11 +256,11 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
           contentPadding: const EdgeInsets.all(16),
           leading: CircleAvatar(
             radius: 30,
-            backgroundColor: AppColors.azulPrincipal,
+            backgroundColor: colorScheme.primary,
             child: Text(
               widget.currentUser.nombre[0].toUpperCase(),
-              style: const TextStyle(
-                color: AppColors.blanco,
+              style: TextStyle(
+                color: colorScheme.onPrimary,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
@@ -264,9 +268,10 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
           ),
           title: Text(
             widget.currentUser.nombre,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
             ),
           ),
           subtitle: Column(
@@ -276,14 +281,14 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
               Text(
                 widget.currentUser.email,
                 style: TextStyle(
-                  color: Colors.grey[600],
+                  color: colorScheme.onSurface.withOpacity(0.6),
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 '${widget.currentUser.carrera} • ${widget.currentUser.semestre}',
                 style: TextStyle(
-                  color: AppColors.azulPrincipal,
+                  color: colorScheme.primary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -321,7 +326,7 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(ColorScheme colorScheme) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 40),
@@ -330,14 +335,14 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
             Icon(
               Icons.account_circle_outlined,
               size: 80,
-              color: Colors.grey[400],
+              color: colorScheme.onSurface.withOpacity(0.3),
             ),
             const SizedBox(height: 16),
             Text(
               'No hay otras cuentas guardadas',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.grey[600],
+                color: colorScheme.onSurface.withOpacity(0.6),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -347,7 +352,7 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[500],
+                color: colorScheme.onSurface.withOpacity(0.5),
               ),
             ),
           ],
@@ -356,7 +361,7 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
     );
   }
 
-  List<Widget> _buildOtherAccountsList() {
+  List<Widget> _buildOtherAccountsList(ColorScheme colorScheme) {
     return _savedAccounts
         .where((acc) => acc['email'] != widget.currentUser.email)
         .map((account) => Card(
@@ -368,11 +373,11 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
-          backgroundColor: AppColors.azulPrincipal.withOpacity(0.1),
+          backgroundColor: colorScheme.primary.withOpacity(0.15),
           child: Text(
             account['nombre']![0].toUpperCase(),
             style: TextStyle(
-              color: AppColors.azulPrincipal,
+              color: colorScheme.primary,
               fontWeight: FontWeight.bold,
               fontSize: 18,
             ),
@@ -380,9 +385,10 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
         ),
         title: Text(
           account['nombre']!,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 16,
+            color: colorScheme.onSurface,
           ),
         ),
         subtitle: Column(
@@ -392,14 +398,14 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
               account['email']!,
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: colorScheme.onSurface.withOpacity(0.6),
               ),
             ),
             Text(
               '${account['carrera']} • ${account['semestre']}',
               style: TextStyle(
                 fontSize: 12,
-                color: AppColors.azulPrincipal.withOpacity(0.7),
+                color: colorScheme.primary.withOpacity(0.8),
               ),
             ),
           ],
@@ -412,8 +418,8 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
               child: ElevatedButton(
                 onPressed: () => _switchToAccount(account),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.azulPrincipal,
-                  foregroundColor: AppColors.blanco,
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
                   minimumSize: const Size(50, 30),
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   shape: RoundedRectangleBorder(
@@ -427,7 +433,7 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
               ),
             ),
             IconButton(
-              icon: Icon(
+              icon: const Icon(
                 Icons.delete_outline,
                 color: AppColors.rojoAlerta,
                 size: 20,
@@ -440,8 +446,8 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
     )).toList();
   }
 
-  Widget _buildAddAccountButton() {
-    return Container(
+  Widget _buildAddAccountButton(ColorScheme colorScheme) {
+    return SizedBox(
       width: double.infinity,
       height: 50,
       child: ElevatedButton.icon(
@@ -461,8 +467,8 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.azulPrincipal,
-          foregroundColor: AppColors.blanco,
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),

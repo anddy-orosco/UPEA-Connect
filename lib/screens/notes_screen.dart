@@ -60,12 +60,13 @@ class _NotesScreenState extends State<NotesScreen> {
     NoteModel? noteToEdit = existingNote;
 
     if (existingNote != null) {
+      final loadingColor = Theme.of(context).colorScheme.primary;
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(
+        builder: (context) => Center(
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.azulPrincipal),
+            valueColor: AlwaysStoppedAnimation<Color>(loadingColor),
           ),
         ),
       );
@@ -146,28 +147,38 @@ class _NotesScreenState extends State<NotesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Mismo criterio que login_screen.dart: relleno claro/translúcido en
+    // modo oscuro en vez de un gris/blanco fijo que no se distinguía del
+    // fondo negro.
+    final fillColor = isDark ? Colors.white.withOpacity(0.07) : AppColors.grisClaro;
+
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           // Barra de búsqueda
           Container(
             padding: const EdgeInsets.all(16),
-            color: AppColors.blanco,
+            color: Theme.of(context).cardColor,
             child: TextField(
               onChanged: (value) {
                 setState(() {
                   _searchQuery = value;
                 });
               },
+              style: TextStyle(color: colorScheme.onSurface),
               decoration: InputDecoration(
                 hintText: 'Buscar notas...',
-                prefixIcon: const Icon(Icons.search, color: AppColors.azulPrincipal),
+                hintStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.5)),
+                prefixIcon: Icon(Icons.search, color: colorScheme.primary),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: AppColors.grisClaro,
+                fillColor: fillColor,
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),
             ),
@@ -176,19 +187,19 @@ class _NotesScreenState extends State<NotesScreen> {
           // Lista de notas
           Expanded(
             child: _isLoading
-                ? const Center(
+                ? Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.azulPrincipal),
+                valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
               ),
             )
                 : _filteredNotes.isEmpty
-                ? _buildEmptyState()
+                ? _buildEmptyState(colorScheme)
                 : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: _filteredNotes.length,
               itemBuilder: (context, index) {
                 final note = _filteredNotes[index];
-                return _buildNoteCard(note);
+                return _buildNoteCard(note, colorScheme);
               },
             ),
           ),
@@ -196,13 +207,13 @@ class _NotesScreenState extends State<NotesScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _createOrEditNote(),
-        backgroundColor: AppColors.azulPrincipal,
-        child: const Icon(Icons.add, color: AppColors.blanco),
+        backgroundColor: colorScheme.primary,
+        child: Icon(Icons.add, color: colorScheme.onPrimary),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(ColorScheme colorScheme) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -210,7 +221,7 @@ class _NotesScreenState extends State<NotesScreen> {
           Icon(
             Icons.note_alt_outlined,
             size: 100,
-            color: Colors.grey[400],
+            color: colorScheme.onSurface.withOpacity(0.3),
           ),
           const SizedBox(height: 20),
           Text(
@@ -218,7 +229,7 @@ class _NotesScreenState extends State<NotesScreen> {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
+              color: colorScheme.onSurface.withOpacity(0.7),
             ),
           ),
           const SizedBox(height: 10),
@@ -226,7 +237,7 @@ class _NotesScreenState extends State<NotesScreen> {
             'Toca el botón + para crear una nota',
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey[500],
+              color: colorScheme.onSurface.withOpacity(0.5),
             ),
           ),
         ],
@@ -234,7 +245,7 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
-  Widget _buildNoteCard(NoteModel note) {
+  Widget _buildNoteCard(NoteModel note, ColorScheme colorScheme) {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
 
     return Card(
@@ -257,9 +268,10 @@ class _NotesScreenState extends State<NotesScreen> {
                   Expanded(
                     child: Text(
                       note.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -271,14 +283,14 @@ class _NotesScreenState extends State<NotesScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.azulPrincipal.withOpacity(0.1),
+                        color: colorScheme.primary.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         note.courseName!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.azulPrincipal,
+                          color: colorScheme.primary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -292,7 +304,7 @@ class _NotesScreenState extends State<NotesScreen> {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey[700],
+                  color: colorScheme.onSurface.withOpacity(0.7),
                   height: 1.4,
                 ),
               ),
@@ -305,7 +317,7 @@ class _NotesScreenState extends State<NotesScreen> {
                       'Última modificación: ${dateFormat.format(note.updatedAt)}',
                       style: TextStyle(
                         fontSize: 11,
-                        color: Colors.grey[500],
+                        color: colorScheme.onSurface.withOpacity(0.5),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -666,12 +678,15 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final cardColor = Theme.of(context).cardColor;
+
     return Scaffold(
-      backgroundColor: AppColors.grisClaro,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(widget.note == null ? 'Nueva Nota' : 'Editar Nota'),
-        backgroundColor: AppColors.azulPrincipal,
-        foregroundColor: AppColors.blanco,
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
         elevation: 0,
         actions: [
           IconButton(
@@ -682,14 +697,14 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           TextButton(
             onPressed: _isLoading ? null : _saveNote,
             style: TextButton.styleFrom(
-              foregroundColor: AppColors.blanco,
+              foregroundColor: colorScheme.onPrimary,
             ),
             child: _isLoading
-                ? const SizedBox(
+                ? SizedBox(
               width: 20,
               height: 20,
               child: CircularProgressIndicator(
-                color: AppColors.blanco,
+                color: colorScheme.onPrimary,
                 strokeWidth: 2,
               ),
             )
@@ -704,27 +719,32 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(
+          ? Center(
         child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(AppColors.azulPrincipal),
+          valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
         ),
       )
           : Column(
         children: [
           // Campos Superiores (Título y Materia)
           Container(
-            color: AppColors.blanco,
+            color: cardColor,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _titleController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Título de la nota...',
+                      hintStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.4)),
                       border: InputBorder.none,
                     ),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: colorScheme.onSurface,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -732,17 +752,18 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                   width: 140,
                   child: TextField(
                     controller: _courseController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Materia (Opcional)',
+                      hintStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.4)),
                       border: InputBorder.none,
                     ),
-                    style: const TextStyle(fontSize: 14, color: AppColors.azulOscuro),
+                    style: TextStyle(fontSize: 14, color: colorScheme.onSurface.withOpacity(0.75)),
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          Divider(height: 1, color: colorScheme.onSurface.withOpacity(0.1)),
 
           // Barra de herramientas de texto enriquecido
           RichTextToolbar(
@@ -758,7 +779,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
             onAddTextBox: _addFloatingTextBox,
             onAddImage: _addFloatingImage,
           ),
-          const Divider(height: 1),
+          Divider(height: 1, color: colorScheme.onSurface.withOpacity(0.1)),
 
           // ÁREA DE TRABAJO - Lienzo Hoja A4 con Paginación
           Expanded(
@@ -783,19 +804,19 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           // Paginador Inferior
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: AppColors.blanco,
+            color: cardColor,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Página ${_currentPage + 1} de ${_pages.length}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.azulOscuro),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface),
                 ),
                 ElevatedButton.icon(
                   onPressed: _addNewPage,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.azulPrincipal,
-                    foregroundColor: AppColors.blanco,
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
                   ),
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('Agregar Hoja'),

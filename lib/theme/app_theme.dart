@@ -15,9 +15,9 @@ class AppTheme {
   };
 
   /// Gradiente "de marca" para cada tema. Se usa en el swatch del
-  /// selector y, más adelante, cuando migremos el header del drawer y
-  /// otras pantallas para que lean del tema activo en vez de AppColors
-  /// fijo. Es null para los temas que no tienen un gradiente propio.
+  /// selector y en pantallas que necesitan un fondo de marca en vez
+  /// de leer colorScheme directo. Es null para los temas que no
+  /// tienen un gradiente propio.
   static const Map<AppThemeVariant, LinearGradient?> gradientes = {
     AppThemeVariant.predeterminado: null,
     AppThemeVariant.oscuro: null,
@@ -29,14 +29,31 @@ class AppTheme {
     ),
   };
 
-  // ---- Predeterminado: el azul que ya traía la app (ColorScheme.fromSeed
-  // con Colors.indigo), tal cual estaba antes de agregar el sistema de temas.
+  // ---- Predeterminado: el azul "de siempre" (el mismo que traía
+  // AppColors.azulPrincipal / azulOscuro), no el azul índigo/oceánico
+  // que generaba ColorScheme.fromSeed(Colors.indigo). ----
   static final ThemeData predeterminado = ThemeData(
     useMaterial3: true,
-    colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+    brightness: Brightness.light,
+    scaffoldBackgroundColor: const Color(0xFFF3F4F6),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF2563EB),
+      foregroundColor: Color(0xFFFFFFFF),
+    ),
+    cardColor: const Color(0xFFFFFFFF),
+    colorScheme: const ColorScheme.light(
+      primary: Color(0xFF2563EB),
+      onPrimary: Color(0xFFFFFFFF),
+      secondary: Color(0xFF1E3A8A),
+      onSecondary: Color(0xFFFFFFFF),
+      surface: Color(0xFFFFFFFF),
+      onSurface: Color(0xFF1F2937),
+      error: Color(0xFFEF4444),
+      onError: Color(0xFFFFFFFF),
+    ),
   );
 
-  // ---- Modo oscuro: negro real (no azul grisáceo), acentos discretos ----
+  // ---- Modo oscuro: negro real, acento plomo (no azul) ----
   static final ThemeData oscuro = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
@@ -48,9 +65,9 @@ class AppTheme {
     cardColor: const Color(0xFF121212),
     dialogTheme: const DialogThemeData(backgroundColor: Color(0xFF121212)),
     colorScheme: const ColorScheme.dark(
-      primary: Color(0xFF3B82F6),
+      primary: Color(0xFF52525B), // plomo oscuro, ya no azul
       onPrimary: Color(0xFFFFFFFF),
-      secondary: Color(0xFFEF4444),
+      secondary: Color(0xFF71717A), // plomo un poco más claro para acentos
       onSecondary: Color(0xFFFFFFFF),
       surface: Color(0xFF121212),
       onSurface: Color(0xFFE5E7EB),

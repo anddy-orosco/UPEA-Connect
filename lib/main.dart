@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,9 +21,9 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final isLoggedIn = prefs.getBool('is_logged_in') ?? false;
 
-  // Cargar el tema guardado (o UPEA por defecto si no hay ninguno)
+  // El tema siempre arranca en Predeterminado (no se persiste entre
+  // reinicios). El usuario lo cambia manualmente desde el drawer.
   final themeService = ThemeService();
-  await themeService.loadTheme();
 
   runApp(MyApp(isLoggedIn: isLoggedIn, themeService: themeService));
 }

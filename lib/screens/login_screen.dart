@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/colors.dart';
+import '../theme/app_theme.dart';
+import '../services/theme_service.dart';
 import '../services/api_service.dart';
+import '../widgets/diagonal_split_painter.dart';
 import 'home_screen.dart';
 import 'register_screen.dart';
 
@@ -60,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(_mensajeError(e)),
-            backgroundColor: AppColors.rojoAlerta,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -89,14 +93,59 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // Fondo según el tema activo: negro plano en Oscuro (nada de degradado
+  // ni azul), división diagonal azul/rojo en UPEA, degradado
+  // primary -> secondary en Predeterminado y Rosado. Mismo criterio que
+  // ya se usa en el banner de Inicio y el header del drawer.
+  Widget _buildBackground(BuildContext context, Widget child) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final variant = Provider.of<ThemeService>(context).variant;
+
+    switch (variant) {
+      case AppThemeVariant.oscuro:
+        return Container(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: child,
+        );
+      case AppThemeVariant.upea:
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: CustomPaint(
+                painter: DiagonalSplitPainter(
+                  colorA: colorScheme.primary,
+                  colorB: colorScheme.secondary,
+                ),
+              ),
+            ),
+            child,
+          ],
+        );
+      case AppThemeVariant.predeterminado:
+      case AppThemeVariant.rosado:
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [colorScheme.primary, colorScheme.secondary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: child,
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fillColor = isDark ? Colors.white.withOpacity(0.07) : AppColors.grisClaro;
+
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppColors.azulGradiente,
-        ),
-        child: SafeArea(
+      body: _buildBackground(
+        context,
+        SafeArea(
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -107,29 +156,29 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: 76,
                     height: 76,
                     decoration: BoxDecoration(
-                      color: AppColors.blanco,
+                      color: colorScheme.surface,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.azulOscuro.withOpacity(0.25),
+                          color: Colors.black.withOpacity(0.25),
                           blurRadius: 12,
                           offset: const Offset(0, 5),
                         ),
                       ],
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.school,
                       size: 38,
-                      color: AppColors.azulPrincipal,
+                      color: colorScheme.primary,
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
+                  Text(
                     'Inicia sesión',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.blanco,
+                      color: colorScheme.onPrimary,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -137,7 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     'Bienvenido de vuelta a UPEA-Connect',
                     style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.blanco.withOpacity(0.85),
+                      color: colorScheme.onPrimary.withOpacity(0.85),
                     ),
                   ),
                   const SizedBox(height: 28),
@@ -145,11 +194,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: 340,
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
-                      color: AppColors.blanco,
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(18),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.azulOscuro.withOpacity(0.12),
+                          color: Colors.black.withOpacity(0.12),
                           blurRadius: 24,
                           offset: const Offset(0, 10),
                         ),
@@ -163,7 +212,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
-                            style: const TextStyle(fontSize: 14),
+                            style: TextStyle(fontSize: 14, color: colorScheme.onSurface),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Ingresa tu email';
@@ -178,20 +227,20 @@ class _LoginScreenState extends State<LoginScreen> {
                               labelStyle: const TextStyle(fontSize: 13),
                               hintText: 'nombre@ejemplo.com',
                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                              prefixIcon: Icon(Icons.email_outlined, size: 20, color: AppColors.azulPrincipal),
+                              prefixIcon: Icon(Icons.email_outlined, size: 20, color: colorScheme.primary),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide.none,
                               ),
                               filled: true,
-                              fillColor: AppColors.grisClaro,
+                              fillColor: fillColor,
                             ),
                           ),
                           const SizedBox(height: 14),
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
-                            style: const TextStyle(fontSize: 14),
+                            style: TextStyle(fontSize: 14, color: colorScheme.onSurface),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Ingresa tu contraseña';
@@ -202,12 +251,12 @@ class _LoginScreenState extends State<LoginScreen> {
                               labelText: 'Contraseña',
                               labelStyle: const TextStyle(fontSize: 13),
                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                              prefixIcon: Icon(Icons.lock_outline, size: 20, color: AppColors.azulPrincipal),
+                              prefixIcon: Icon(Icons.lock_outline, size: 20, color: colorScheme.primary),
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
                                   size: 20,
-                                  color: Colors.grey,
+                                  color: colorScheme.onSurface.withOpacity(0.5),
                                 ),
                                 onPressed: () {
                                   setState(() {
@@ -220,7 +269,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 borderSide: BorderSide.none,
                               ),
                               filled: true,
-                              fillColor: AppColors.grisClaro,
+                              fillColor: fillColor,
                             ),
                           ),
                           const SizedBox(height: 22),
@@ -230,19 +279,19 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: ElevatedButton(
                               onPressed: _isLoading ? null : _iniciarSesion,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.azulPrincipal,
-                                foregroundColor: AppColors.blanco,
+                                backgroundColor: colorScheme.primary,
+                                foregroundColor: colorScheme.onPrimary,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 elevation: 2,
                               ),
                               child: _isLoading
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       width: 20,
                                       height: 20,
                                       child: CircularProgressIndicator(
-                                        color: AppColors.blanco,
+                                        color: colorScheme.onPrimary,
                                         strokeWidth: 2,
                                       ),
                                     )
@@ -256,9 +305,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
+                              Text(
                                 '¿No tienes cuenta?',
-                                style: TextStyle(fontSize: 13, color: Colors.grey),
+                                style: TextStyle(fontSize: 13, color: colorScheme.onSurface.withOpacity(0.6)),
                               ),
                               TextButton(
                                 onPressed: _isLoading ? null : _irACrearCuenta,
@@ -267,12 +316,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                   minimumSize: Size.zero,
                                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 ),
-                                child: const Text(
+                                child: Text(
                                   'Crear cuenta',
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
-                                    color: AppColors.azulPrincipal,
+                                    color: colorScheme.primary,
                                   ),
                                 ),
                               ),
