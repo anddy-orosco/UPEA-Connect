@@ -6,7 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
 
-  // localhost funciona porque corremos en Chrome/Edge en la misma PC.
   static const String baseUrl = 'https://upea-connect-backend.vercel.app/api';
 
   static Future<Map<String, dynamic>> register({
@@ -33,10 +32,6 @@ class ApiService {
     if (response.statusCode == 201) {
       return data;
     } else {
-      // Antes: data['error']?['message'], que solo lee cuando 'error' es un
-      // objeto anidado con 'message' adentro. Si el backend responde con
-      // 'message' plano o con 'error' como string, esto devolvía null y
-      // caía siempre al texto genérico 'Error al registrar'.
       throw Exception(data['message'] ?? data['error'] ?? 'Error al registrar');
     }
   }
@@ -60,16 +55,48 @@ class ApiService {
     }
   }
 
-  // Sube una imagen al backend (Vercel Blob) y devuelve la URL pública
-  // donde quedó guardada, para usarla en notas (elementos flotantes de
-  // imagen). Recibe los bytes ya leídos (en vez de un dart:io File) para
-  // que funcione igual en celular y en web, donde no existe un File real
-  // detrás de la imagen elegida. mimeType (ej. 'image/jpeg') se manda como
-  // Content-Type de la parte del archivo: sin esto, el backend no puede
-  // saber qué tipo de archivo es a partir de solo los bytes y lo rechaza
-  // con 'Tipo de archivo no permitido'. Si no se tiene el mimeType (puede
-  // venir null de XFile.mimeType en algunos dispositivos), se asume
-  // image/jpeg como valor por defecto razonable para fotos de galería.
+  static Future<Map<String, dynamic>> verifyEmail({
+    required String token,
+    required String code,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/verify-email'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'code': code}),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return data;
+    } else {
+      throw Exception(data['message'] ?? data['error'] ?? 'Error al verificar el código');
+    }
+  }
+
+  static Future<Map<String, dynamic>> resendCode({
+    required String token,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/resend-code'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return data;
+    } else {
+      throw Exception(data['message'] ?? data['error'] ?? 'Error al reenviar el código');
+    }
+  }
+
   static Future<String> uploadImage(
     Uint8List bytes,
     String filename, {
