@@ -8,6 +8,7 @@ import '../services/api_service.dart';
 import '../widgets/diagonal_split_painter.dart';
 import 'home_screen.dart';
 import 'register_screen.dart';
+import 'verify_email_screen.dart';
 
 /// Pantalla de inicio de sesión.
 /// Vive en lib/screens/login_screen.dart
@@ -45,6 +46,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final token = result['token'] as String;
       final user = result['user'] as Map<String, dynamic>;
+
+      if (user['emailVerified'] != true) {
+        if (mounted) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => VerifyEmailScreen(
+                token: token,
+                email: user['email'] ?? _emailController.text.trim(),
+                user: user,
+              ),
+            ),
+          );
+        }
+        return;
+      }
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token', token);
