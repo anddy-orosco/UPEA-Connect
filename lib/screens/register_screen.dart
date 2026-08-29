@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+  import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme/colors.dart';
 import '../theme/app_theme.dart';
 import '../services/theme_service.dart';
 import '../services/api_service.dart';
 import '../widgets/diagonal_split_painter.dart';
+import '../data/carreras.dart';
 import 'verify_email_screen.dart';
 
 /// Pantalla de creación de cuenta.
@@ -21,14 +22,168 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _nombreController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _carreraController = TextEditingController();
-  final _semestreController = TextEditingController();
+
+  Carrera? _carreraSeleccionada;
+  int? _periodoSeleccionado;
 
   bool _isLoading = false;
   bool _obscurePassword = true;
 
+  String _formatPeriodo(Carrera carrera, int periodo) {
+    final unidad = carrera.unidad == UnidadAcademica.anio ? 'Año' : 'Semestre';
+    return '$periodo° $unidad';
+  }
+
+  Future<void> _seleccionarCarrera() async {
+    final colorScheme = Theme.of(context).colorScheme;
+    final carrera = await showModalBottomSheet<Carrera>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.7,
+          maxChildSize: 0.9,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'Selecciona tu carrera',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    itemCount: areasUpea.length,
+                    itemBuilder: (context, index) {
+                      final area = areasUpea[index];
+                      return ExpansionTile(
+                        title: Text(
+                          area.nombre,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                        children: area.carreras.map((carrera) {
+                          return ListTile(
+                            title: Text(
+                              carrera.nombre,
+                              style: TextStyle(fontSize: 14, color: colorScheme.onSurface),
+                            ),
+                            onTap: () => Navigator.of(context).pop(carrera),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (carrera != null) {
+      setState(() {
+        _carreraSeleccionada = carrera;
+        _periodoSeleccionado = null;
+      });
+    }
+  }
+
+  Future<void> _seleccionarPeriodo() async {
+    if (_carreraSeleccionada == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Primero selecciona tu carrera')),
+      );
+      return;
+    }
+
+    final colorScheme = Theme.of(context).colorScheme;
+    final carrera = _carreraSeleccionada!;
+    final unidadTexto = carrera.unidad == UnidadAcademica.anio ? 'Año' : 'Semestre';
+
+    final periodo = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Selecciona tu $unidadTexto',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: carrera.duracion,
+                  itemBuilder: (context, index) {
+                    final numero = index + 1;
+                    return ListTile(
+                      title: Text(
+                        '$numero° $unidadTexto',
+                        style: TextStyle(fontSize: 14, color: colorScheme.onSurface),
+                      ),
+                      onTap: () => Navigator.of(context).pop(numero),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (periodo != null) {
+      setState(() {
+        _periodoSeleccionado = periodo;
+      });
+    }
+  }
+
   Future<void> _crearCuenta() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_carreraSeleccionada == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecciona tu carrera')),
+      );
+      return;
+    }
+    if (_periodoSeleccionado == null) {
+      final unidad = _carreraSeleccionada!.unidad == UnidadAcademica.anio ? 'año' : 'semestre';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Selecciona tu $unidad')),
+      );
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -39,8 +194,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         nombre: _nombreController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
-        carrera: _carreraController.text.trim(),
-        semestre: _semestreController.text.trim(),
+        carrera: _carreraSeleccionada!.nombre,
+        semestre: _formatPeriodo(_carreraSeleccionada!, _periodoSeleccionado!),
       );
 
       final token = result['token'] as String;
@@ -123,11 +278,83 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  Widget _campo({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    required Color fillColor,
+    required ColorScheme colorScheme,
+    TextInputType? keyboardType,
+    required String? Function(String?) validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: TextStyle(fontSize: 14, color: colorScheme.onSurface),
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(fontSize: 13),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        prefixIcon: Icon(icon, size: 20, color: colorScheme.primary),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        filled: true,
+        fillColor: fillColor,
+      ),
+    );
+  }
+
+  Widget _selectorField({
+    required String label,
+    required IconData icon,
+    required String? valueText,
+    required Color fillColor,
+    required ColorScheme colorScheme,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        decoration: BoxDecoration(
+          color: fillColor,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: colorScheme.primary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                valueText ?? label,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: valueText != null
+                      ? colorScheme.onSurface
+                      : colorScheme.onSurface.withOpacity(0.5),
+                ),
+              ),
+            ),
+            Icon(Icons.arrow_drop_down, color: colorScheme.onSurface.withOpacity(0.5)),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final fillColor = isDark ? Colors.white.withOpacity(0.07) : AppColors.grisClaro;
+
+    final labelPeriodo = _carreraSeleccionada == null
+        ? 'Semestre / Año'
+        : (_carreraSeleccionada!.unidad == UnidadAcademica.anio ? 'Año' : 'Semestre');
 
     return Scaffold(
       body: _buildBackground(
@@ -247,22 +474,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 12),
-                                _campo(
-                                  controller: _carreraController,
+                                _selectorField(
                                   label: 'Carrera',
                                   icon: Icons.school_outlined,
+                                  valueText: _carreraSeleccionada?.nombre,
                                   fillColor: fillColor,
                                   colorScheme: colorScheme,
-                                  validator: (v) => (v == null || v.isEmpty) ? 'Ingresa tu carrera' : null,
+                                  onTap: _seleccionarCarrera,
                                 ),
                                 const SizedBox(height: 12),
-                                _campo(
-                                  controller: _semestreController,
-                                  label: 'Semestre',
+                                _selectorField(
+                                  label: labelPeriodo,
                                   icon: Icons.grade_outlined,
+                                  valueText: _carreraSeleccionada != null && _periodoSeleccionado != null
+                                      ? _formatPeriodo(_carreraSeleccionada!, _periodoSeleccionado!)
+                                      : null,
                                   fillColor: fillColor,
                                   colorScheme: colorScheme,
-                                  validator: (v) => (v == null || v.isEmpty) ? 'Ingresa tu semestre' : null,
+                                  onTap: _seleccionarPeriodo,
                                 ),
                                 const SizedBox(height: 22),
                                 SizedBox(
@@ -309,42 +538,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _campo({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    required Color fillColor,
-    required ColorScheme colorScheme,
-    TextInputType? keyboardType,
-    required String? Function(String?) validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      style: TextStyle(fontSize: 14, color: colorScheme.onSurface),
-      validator: validator,
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(fontSize: 13),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        prefixIcon: Icon(icon, size: 20, color: colorScheme.primary),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        filled: true,
-        fillColor: fillColor,
-      ),
-    );
-  }
-
   @override
   void dispose() {
     _nombreController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _carreraController.dispose();
-    _semestreController.dispose();
     super.dispose();
   }
 }
