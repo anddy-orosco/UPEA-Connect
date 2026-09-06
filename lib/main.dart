@@ -3,8 +3,16 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
+
+// Pantallas base del proyecto
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+
+// Módulo Pomodoro y Tienda (tus pantallas)
+import 'screens/pomodoro_screen.dart';
+import 'screens/focus_store_screen.dart';
+
+// Servicios
 import 'services/notification_service.dart';
 import 'services/theme_service.dart';
 
@@ -21,9 +29,9 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final isLoggedIn = prefs.getBool('is_logged_in') ?? false;
 
-  // El tema siempre arranca en Predeterminado (no se persiste entre
-  // reinicios). El usuario lo cambia manualmente desde el drawer.
+  // Cargar el tema guardado en SharedPreferences
   final themeService = ThemeService();
+  await themeService.loadTheme();
 
   runApp(MyApp(isLoggedIn: isLoggedIn, themeService: themeService));
 }
@@ -57,6 +65,10 @@ class MyApp extends StatelessWidget {
             ],
             theme: theme.themeData,
             home: isLoggedIn ? const HomeScreen() : const LoginScreen(),
+            routes: {
+              '/pomodoro': (context) => const PomodoroScreen(),
+              '/focus_store': (context) => const FocusStoreScreen(),
+            },
           );
         },
       ),

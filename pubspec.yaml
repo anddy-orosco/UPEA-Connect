@@ -1,5 +1,5 @@
 name: mi_app_universitaria
-description: A new Flutter project.
+description: "A new Flutter project."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -46,6 +46,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  # Carga automáticamente todas las imágenes de la carpeta (plantas, macetas, fondos, etc.)
   assets:
     - assets/images/
 

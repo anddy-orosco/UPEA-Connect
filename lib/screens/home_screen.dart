@@ -2,17 +2,20 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../theme/colors.dart';
 import '../theme/app_theme.dart';
 import '../services/theme_service.dart';
 import '../models/user_model.dart';
 import '../widgets/diagonal_split_painter.dart';
+import '../widgets/drawer_menu.dart';
+
 import 'profile_screen.dart';
 import 'account_switcher.dart';
 import 'notes_screen.dart';
 import 'calendar_screen.dart';
 import 'grade_calculator_screen.dart';
-import '../widgets/drawer_menu.dart';
+import 'pomodoro_screen.dart';
 import 'chat_screen.dart';
 import 'login_screen.dart';
 
@@ -27,10 +30,20 @@ class _HomeScreenState extends State<HomeScreen> {
   UserModel? _currentUser;
   int _selectedIndex = 0;
 
+  // Controlador e índice para el menú deslizable de herramientas
+  final PageController _toolsPageController = PageController();
+  int _currentToolsPage = 0;
+
   @override
   void initState() {
     super.initState();
     _loadUser();
+  }
+
+  @override
+  void dispose() {
+    _toolsPageController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUser() async {
@@ -40,6 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final email = prefs.getString('user_email') ?? '';
       final carrera = prefs.getString('user_carrera') ?? '';
       final semestre = prefs.getString('user_semestre') ?? '';
+      final fotoPath = prefs.getString('user_foto_path');
 
       setState(() {
         _currentUser = UserModel(
@@ -47,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
           email: email,
           carrera: carrera,
           semestre: semestre,
+          fotoPath: fotoPath,
         );
       });
 
@@ -137,6 +152,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return 'Calculadora de Notas';
       case 6:
         return 'Asistente IA';
+      case 7:
+        return 'Enfoque Académico';
       default:
         return 'Inicio';
     }
@@ -179,6 +196,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return const GradeCalculatorScreen();
       case 6:
         return const ChatScreen();
+      case 7:
+        return const PomodoroScreen();
       default:
         return _buildHomeContent();
     }
@@ -202,43 +221,112 @@ class _HomeScreenState extends State<HomeScreen> {
                   _buildAiHeroButton(variant, colorScheme),
                   const SizedBox(height: 24),
 
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Herramientas Académicas',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onSurface,
+                  // Cabecera con título e indicadores de puntos (Dots)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _currentToolsPage == 0
+                            ? 'Herramientas Académicas'
+                            : 'Más Herramientas',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
                       ),
-                    ),
+                      Row(
+                        children: List.generate(2, (index) {
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            width: _currentToolsPage == index ? 18 : 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              color: _currentToolsPage == index
+                                  ? colorScheme.primary
+                                  : colorScheme.onSurface.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
 
-                  _buildFeatureCard(
-                    title: 'Calendario Académico',
-                    subtitle: 'Fechas importantes y exámenes',
-                    icon: Icons.calendar_month_rounded,
-                    color: Colors.blue.shade600,
-                    index: 3,
-                  ),
-                  const SizedBox(height: 10),
+                  // Menú deslizable (PageView)
+                  SizedBox(
+                    height: 265,
+                    child: PageView(
+                      controller: _toolsPageController,
+                      onPageChanged: (index) {
+                        setState(() {
+                          _currentToolsPage = index;
+                        });
+                      },
+                      children: [
+                        // PÁGINA 1
+                        Column(
+                          children: [
+                            _buildFeatureCard(
+                              title: 'Calendario Académico',
+                              subtitle: 'Fechas importantes y exámenes',
+                              icon: Icons.calendar_month_rounded,
+                              color: Colors.blue.shade600,
+                              index: 3,
+                            ),
+                            const SizedBox(height: 10),
+                            _buildFeatureCard(
+                              title: 'Mis Apuntes',
+                              subtitle: 'Tus notas y resúmenes de clase',
+                              icon: Icons.note_alt_rounded,
+                              color: Colors.amber.shade700,
+                              index: 4,
+                            ),
+                            const SizedBox(height: 10),
+                            _buildFeatureCard(
+                              title: 'Calculadora de Notas',
+                              subtitle: 'Control de promedio y nota requerida',
+                              icon: Icons.calculate_rounded,
+                              color: Colors.teal.shade600,
+                              index: 5,
+                            ),
+                          ],
+                        ),
 
-                  _buildFeatureCard(
-                    title: 'Mis Apuntes',
-                    subtitle: 'Tus notas y resúmenes de clase',
-                    icon: Icons.note_alt_rounded,
-                    color: Colors.amber.shade700,
-                    index: 4,
-                  ),
-                  const SizedBox(height: 10),
-
-                  _buildFeatureCard(
-                    title: 'Calculadora de Notas',
-                    subtitle: 'Control de promedio y nota requerida',
-                    icon: Icons.calculate_rounded,
-                    color: Colors.teal.shade600,
-                    index: 5,
+                        // PÁGINA 2
+                        Column(
+                          children: [
+                            _buildFeatureCard(
+                              title: 'Enfoque Académico',
+                              subtitle: 'Método Pomodoro y racha de estudio',
+                              icon: Icons.timer_rounded,
+                              color: Colors.deepOrange.shade600,
+                              index: 7,
+                            ),
+                            const SizedBox(height: 10),
+                            _buildFeatureCard(
+                              title: 'Documentos',
+                              subtitle: 'Formatos y trámites universitarios',
+                              icon: Icons.folder_shared_rounded,
+                              color: Colors.purple.shade600,
+                              index: -1,
+                              isComingSoon: true,
+                            ),
+                            const SizedBox(height: 10),
+                            _buildFeatureCard(
+                              title: 'Mapa UPEA',
+                              subtitle: 'Ubicación de bloques y aulas',
+                              icon: Icons.map_rounded,
+                              color: Colors.red.shade600,
+                              index: -1,
+                              isComingSoon: true,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -249,14 +337,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Banner superior con avatar + nombre + carrera. El tratamiento de color
-  // depende del tema activo: degradado para Predeterminado/Rosado, negro
-  // plano para Oscuro, bloque diagonal azul/rojo (sin degradado) para UPEA.
   Widget _buildHeaderBanner(
-    AppThemeVariant variant,
-    ColorScheme colorScheme,
-    Color scaffoldBg,
-  ) {
+      AppThemeVariant variant,
+      ColorScheme colorScheme,
+      Color scaffoldBg,
+      ) {
     final avatarAndText = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -278,7 +363,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             child: ClipOval(
-              child: _currentUser!.fotoPath != null
+              child: (_currentUser!.fotoPath != null &&
+                  _currentUser!.fotoPath!.isNotEmpty)
                   ? Image.file(File(_currentUser!.fotoPath!), fit: BoxFit.cover)
                   : Icon(Icons.person, size: 50, color: colorScheme.primary),
             ),
@@ -311,7 +397,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     switch (variant) {
       case AppThemeVariant.oscuro:
-        // Netamente negro, sin degradado.
         return Container(
           width: double.infinity,
           color: scaffoldBg,
@@ -319,7 +404,6 @@ class _HomeScreenState extends State<HomeScreen> {
         );
 
       case AppThemeVariant.upea:
-        // Bloque diagonal azul/rojo, sin mezcla de color.
         return Stack(
           children: [
             Positioned.fill(
@@ -350,9 +434,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Botón destacado de la IA. El tratamiento de color sigue el tema activo:
-  // degradado primary→secondary en Predeterminado/Rosado, color sólido
-  // (sin degradado) en Oscuro, bloque azul con filo rojo en UPEA.
   Widget _buildAiHeroButton(AppThemeVariant variant, ColorScheme colorScheme) {
     late final BoxDecoration decoration;
 
@@ -493,13 +574,14 @@ class _HomeScreenState extends State<HomeScreen> {
     required IconData icon,
     required Color color,
     required int index,
+    bool isComingSoon = false,
   }) {
     final cardColor = Theme.of(context).cardColor;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       decoration: BoxDecoration(
-        color: cardColor,
+        color: isComingSoon ? cardColor.withOpacity(0.6) : cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -514,9 +596,18 @@ class _HomeScreenState extends State<HomeScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            setState(() {
-              _selectedIndex = index;
-            });
+            if (isComingSoon) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('🚀 Esta función estará disponible muy pronto.'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            } else {
+              setState(() {
+                _selectedIndex = index;
+              });
+            }
           },
           child: Padding(
             padding: const EdgeInsets.all(14.0),
@@ -525,23 +616,59 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.12),
+                    color: isComingSoon
+                        ? Colors.grey.withOpacity(0.2)
+                        : color.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, color: color, size: 26),
+                  child: Icon(
+                    icon,
+                    color: isComingSoon ? Colors.grey : color,
+                    size: 26,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              title,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isComingSoon
+                                    ? colorScheme.onSurface.withOpacity(0.5)
+                                    : colorScheme.onSurface,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (isComingSoon) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade300,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'Próximamente',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -550,6 +677,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           fontSize: 12,
                           color: colorScheme.onSurface.withOpacity(0.6),
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
