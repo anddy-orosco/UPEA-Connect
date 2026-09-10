@@ -87,12 +87,15 @@ class FocusService {
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       name: initialSubjectName,
       colorValue: defaultColors[0],
+      equippedSpecies: 'sp_oak',
+      equippedPot: 'pot_default',
+      plantProgress: 0.0,
     );
 
     await saveSubject(firstSubject);
     await setActiveSubjectId(firstSubject.id);
 
-    // Regalo de 100 monedas si se compromete más de 7 días
+    // Regalo de monedas si se compromete más de 7 días
     int bonusCoins = 0;
     if (commitmentDays > 7) {
       bonusCoins = 500;
@@ -125,6 +128,25 @@ class FocusService {
     await prefs.setStringList(_keySubjects, rawList);
   }
 
+  // 🟢 NUEVO: Actualizar la planta (especie, maceta o progreso) de una materia específica
+  Future<void> updateSubjectPlant({
+    required String subjectId,
+    String? equippedSpecies,
+    String? equippedPot,
+    double? plantProgress,
+  }) async {
+    List<SubjectModel> list = await getSubjects();
+    int index = list.indexWhere((element) => element.id == subjectId);
+    if (index >= 0) {
+      final updated = list[index].copyWith(
+        equippedSpecies: equippedSpecies,
+        equippedPot: equippedPot,
+        plantProgress: plantProgress,
+      );
+      await saveSubject(updated);
+    }
+  }
+
   // Sumar minutos de estudio a la materia activa
   Future<void> addMinutesToSubject(String subjectId, int minutes) async {
     List<SubjectModel> list = await getSubjects();
@@ -147,7 +169,7 @@ class FocusService {
   }
 
   // ==========================================
-  // GESTIÓN DE PLANTAS Y MACETAS (TIENDA)
+  // GESTIÓN DE PLANTAS Y MACETAS (TIENDA Y POR MATERIA)
   // ==========================================
 
   // --- ESPECIES DE PLANTAS ---
@@ -155,13 +177,12 @@ class FocusService {
     final prefs = await SharedPreferences.getInstance();
     final rawList = prefs.getStringList(_keyPurchasedSpecies) ?? ['sp_oak'];
 
-    // Filtra cualquier ID no válido (por ejemplo, 'sp_bonsai')
+    // Filtra cualquier ID no válido
     final filtered = rawList.where((id) => validSpecies.contains(id)).toList();
     if (!filtered.contains('sp_oak')) {
       filtered.add('sp_oak');
     }
 
-    // Si la lista cambió al limpiar valores antiguos, actualiza la persistencia
     if (filtered.length != rawList.length) {
       await prefs.setStringList(_keyPurchasedSpecies, filtered);
     }
@@ -188,13 +209,27 @@ class FocusService {
     if (!validSpecies.contains(speciesId)) return;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyEquippedSpecies, speciesId);
+
+    // Equipar en la materia activa actual
+    final activeId = await getActiveSubjectId();
+    if (activeId != null) {
+      await updateSubjectPlant(subjectId: activeId, equippedSpecies: speciesId);
+    }
   }
 
   Future<String> getEquippedSpecies() async {
+    final activeId = await getActiveSubjectId();
+    if (activeId != null) {
+      final subjects = await getSubjects();
+      final active = subjects.firstWhere((s) => s.id == activeId, orElse: () => subjects.first);
+      if (validSpecies.contains(active.equippedSpecies)) {
+        return active.equippedSpecies;
+      }
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final species = prefs.getString(_keyEquippedSpecies) ?? 'sp_oak';
 
-    // Si la especie guardada ya no existe, resetea a Roble por seguridad
     if (!validSpecies.contains(species)) {
       await prefs.setString(_keyEquippedSpecies, 'sp_oak');
       return 'sp_oak';
@@ -238,9 +273,24 @@ class FocusService {
     if (!validPots.contains(potId)) return;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyEquippedPot, potId);
+
+    // Equipar en la materia activa actual
+    final activeId = await getActiveSubjectId();
+    if (activeId != null) {
+      await updateSubjectPlant(subjectId: activeId, equippedPot: potId);
+    }
   }
 
   Future<String> getEquippedPot() async {
+    final activeId = await getActiveSubjectId();
+    if (activeId != null) {
+      final subjects = await getSubjects();
+      final active = subjects.firstWhere((s) => s.id == activeId, orElse: () => subjects.first);
+      if (validPots.contains(active.equippedPot)) {
+        return active.equippedPot;
+      }
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final pot = prefs.getString(_keyEquippedPot) ?? 'pot_default';
 

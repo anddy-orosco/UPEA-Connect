@@ -60,9 +60,6 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
     final subjects = await _focusService.getSubjects();
     final activeId = await _focusService.getActiveSubjectId();
 
-    final pot = await _focusService.getEquippedPot();
-    final species = await _focusService.getEquippedSpecies();
-
     subjects.sort((a, b) => b.totalMinutesStudied.compareTo(a.totalMinutesStudied));
 
     SubjectModel? active;
@@ -73,6 +70,10 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
       );
     }
 
+    // Carga especie y maceta específicas de la materia activa
+    final pot = active?.equippedPot ?? await _focusService.getEquippedPot();
+    final species = active?.equippedSpecies ?? await _focusService.getEquippedSpecies();
+
     if (mounted) {
       setState(() {
         _coins = coins;
@@ -82,6 +83,20 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
         _equippedSpecies = species;
       });
     }
+  }
+
+  // Método para cambiar de materia restableciendo el estado de la planta
+  Future<void> _switchActiveSubject(String subjectId) async {
+    _timer?.cancel();
+    await _focusService.setActiveSubjectId(subjectId);
+
+    setState(() {
+      _isRunning = false;
+      _timeLeft = _isWorkMode ? _workTime : _breakTime;
+      _debugProgress = null; // Limpia el override manual al cambiar de materia
+    });
+
+    await _loadData();
   }
 
   Future<void> _showOnboardingDialog() async {
@@ -263,7 +278,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
         return AlertDialog(
           title: const Text('Nueva Materia'),
           content: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min, // ✅ Corregido
             children: [
               TextField(
                 controller: controller,
@@ -286,11 +301,13 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
                     id: DateTime.now().millisecondsSinceEpoch.toString(),
                     name: controller.text.trim(),
                     colorValue: selectedColor,
+                    equippedSpecies: 'sp_oak',
+                    equippedPot: 'pot_default',
+                    plantProgress: 0.0,
                   );
                   await _focusService.saveSubject(newSub);
-                  await _focusService.setActiveSubjectId(newSub.id);
+                  await _switchActiveSubject(newSub.id);
                   if (context.mounted) Navigator.pop(context);
-                  _loadData();
                 }
               },
               child: const Text('Guardar'),
@@ -327,10 +344,18 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
     if (_isWorkMode && _activeSubject != null) {
       await _focusService.addCoins(25);
       await _focusService.addMinutesToSubject(_activeSubject!.id, 25);
+
+      // Incrementar y guardar el progreso exclusivo de esta materia
+      double newProgress = (_activeSubject!.plantProgress + 0.25).clamp(0.0, 1.0);
+
+      await _focusService.updateSubjectPlant(
+        subjectId: _activeSubject!.id,
+        plantProgress: newProgress,
+      );
     }
 
     _switchMode();
-    _loadData();
+    await _loadData();
   }
 
   void _resetTimer() {
@@ -362,14 +387,24 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
   Widget build(BuildContext context) {
     final maxTime = _isWorkMode ? _workTime : _breakTime;
 
-    // Calcula el progreso real del temporizador o toma el valor de prueba si existe
-    final realProgress = 1.0 - (_timeLeft / maxTime);
-    final displayProgress = _debugProgress ?? realProgress;
+    // Progreso del temporizador actual
+    final sessionProgress = 1.0 - (_timeLeft / maxTime);
+
+    // Progreso de planta guardado de la materia activa
+    final basePlantProgress = _activeSubject?.plantProgress ?? 0.0;
+
+    // Si el temporizador está corriendo, le sumamos el avance de la sesión
+    final calculatedProgress = _isRunning
+        ? (basePlantProgress + (sessionProgress * 0.25)).clamp(0.0, 1.0)
+        : basePlantProgress;
+
+    // Prioriza el override de pruebas si existe, de lo contrario muestra el progreso real de la materia
+    final displayProgress = _debugProgress ?? calculatedProgress;
 
     return Scaffold(
       body: Stack(
         children: [
-          // 1. Imagen de Fondo Dinámica con animación Día/Noche
+          // 1. Imagen de Fondo Dinámica
           Positioned.fill(
             child: AnimatedSwitcher(
               duration: const Duration(seconds: 1),
@@ -388,7 +423,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
             ),
           ),
 
-          // 2. Capa de sombra para lecturabilidad
+          // 2. Capa de sombra
           Positioned.fill(
             child: Container(
               color: Colors.black.withOpacity(0.18),
@@ -505,11 +540,22 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
                         ),
                         icon: const Icon(Icons.nature_rounded, size: 18),
                         label: const Text('Fase +', style: TextStyle(fontSize: 12)),
-                        onPressed: () {
+                        onPressed: () async {
+                          double current = displayProgress;
+                          double next = (current + 0.25) > 1.0 ? 0.0 : current + 0.25;
+
                           setState(() {
-                            double current = _debugProgress ?? realProgress;
-                            _debugProgress = (current + 0.25) > 1.0 ? 0.0 : current + 0.25;
+                            _debugProgress = next;
                           });
+
+                          // Guardar inmediatamente en la materia activa
+                          if (_activeSubject != null) {
+                            await _focusService.updateSubjectPlant(
+                              subjectId: _activeSubject!.id,
+                              plantProgress: next,
+                            );
+                            await _loadData();
+                          }
                         },
                       ),
                       ElevatedButton.icon(
@@ -541,7 +587,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: LinearProgressIndicator(
-                          value: displayProgress,
+                          value: sessionProgress,
                           minHeight: 8,
                           backgroundColor: Colors.white24,
                           valueColor: AlwaysStoppedAnimation<Color>(
@@ -646,10 +692,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
                     ),
                     onSelected: (bool selected) async {
                       if (selected) {
-                        await _focusService.setActiveSubjectId(subject.id);
-                        setState(() {
-                          _activeSubject = subject;
-                        });
+                        await _switchActiveSubject(subject.id);
                       }
                     },
                   ),

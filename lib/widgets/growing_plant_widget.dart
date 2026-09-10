@@ -15,15 +15,33 @@ class PlantSpeciesItem {
   });
 }
 
-// Catálogo de la tienda
 final List<PlantSpeciesItem> availableSpeciesInShop = [
   const PlantSpeciesItem(id: 'sp_oak', name: 'Roble Clásico', price: 0, iconEmoji: '🌳'),
   const PlantSpeciesItem(id: 'sp_rose', name: 'Rosa Roja', price: 150, iconEmoji: '🌹'),
   const PlantSpeciesItem(id: 'sp_sakura', name: 'Cerezo Sakura', price: 250, iconEmoji: '🌸'),
 ];
 
+// --- ESTRUCTURA DE CONFIGURACIÓN DE CALIBRACIÓN ---
+class CalibrationData {
+  final double plantX;
+  final double plantY;
+  final double plantScale;
+  final double potX;
+  final double potY;
+  final double potScale;
+
+  const CalibrationData({
+    this.plantX = 0.0,
+    this.plantY = 0.0,
+    this.plantScale = 1.0,
+    this.potX = 0.0,
+    this.potY = 0.0,
+    this.potScale = 1.0,
+  });
+}
+
 // --- WIDGET PRINCIPAL ---
-class GrowingPlantWidget extends StatelessWidget {
+class GrowingPlantWidget extends StatefulWidget {
   final double progress;
   final String equippedPot;
   final String equippedDecoration;
@@ -37,42 +55,53 @@ class GrowingPlantWidget extends StatelessWidget {
     this.equippedSpecies = 'sp_oak',
   });
 
-  // --- SELECCIÓN DINÁMICA DE PLANTA SEGÚN FASE Y ESPECIE ---
-  String _getPlantImagePath() {
-    int phase = 1;
-    if (progress >= 0.75) {
-      phase = 4;
-    } else if (progress >= 0.50) {
-      phase = 3;
-    } else if (progress >= 0.25) {
-      phase = 2;
-    }
+  @override
+  State<GrowingPlantWidget> createState() => _GrowingPlantWidgetState();
+}
 
-    switch (equippedSpecies) {
+class _GrowingPlantWidgetState extends State<GrowingPlantWidget> {
+  // Offsets y escalas manuales de emergencia / reajuste
+  double _manualPlantX = 0.0;
+  double _manualPlantY = 0.0;
+  double _manualPotX = 0.0;
+  double _manualPotY = 0.0;
+  double _manualPlantScale = 1.0;
+  double _manualPotScale = 1.0;
+
+  // Determinar fase actual (1 a 4)
+  int get _currentPhase {
+    if (widget.progress >= 0.75) return 4;
+    if (widget.progress >= 0.50) return 3;
+    if (widget.progress >= 0.25) return 2;
+    return 1;
+  }
+
+  // --- SELECCIÓN DINÁMICA DE IMÁGENES ---
+  String _getPlantImagePath() {
+    switch (widget.equippedSpecies) {
       case 'sp_rose':
-        if (phase == 1) return 'assets/images/fase1_rosa_brote.png';
-        if (phase == 2) return 'assets/images/fase2_rosa_vastago.png';
-        if (phase == 3) return 'assets/images/fase3_rosa_capullo.png';
+        if (_currentPhase == 1) return 'assets/images/fase1_rosa_brote.png';
+        if (_currentPhase == 2) return 'assets/images/fase2_rosa_vastago.png';
+        if (_currentPhase == 3) return 'assets/images/fase3_rosa_capullo.png';
         return 'assets/images/fase4_rosa_floripondio.png';
 
       case 'sp_sakura':
-        if (phase == 1) return 'assets/images/fase1_sakura_brote.png';
-        if (phase == 2) return 'assets/images/fase2_sakura_rama.png';
-        if (phase == 3) return 'assets/images/fase3_sakura_capullo.png';
+        if (_currentPhase == 1) return 'assets/images/fase1_sakura_brote.png';
+        if (_currentPhase == 2) return 'assets/images/fase2_sakura_rama.png';
+        if (_currentPhase == 3) return 'assets/images/fase3_sakura_capullo.png';
         return 'assets/images/fase4_sakura_plena.png';
 
       case 'sp_oak':
       default:
-        if (phase == 1) return 'assets/images/fase1_plantula.png';
-        if (phase == 2) return 'assets/images/fase2_planta_joven.png';
-        if (phase == 3) return 'assets/images/fase3_planta_madura.png';
+        if (_currentPhase == 1) return 'assets/images/fase1_plantula.png';
+        if (_currentPhase == 2) return 'assets/images/fase2_planta_joven.png';
+        if (_currentPhase == 3) return 'assets/images/fase3_planta_madura.png';
         return 'assets/images/fase4_planta_frondosa.png';
     }
   }
 
-  // --- SELECCIÓN DINÁMICA DE MACETA ---
   String _getPotImagePath() {
-    switch (equippedPot) {
+    switch (widget.equippedPot) {
       case 'pot_gold':
         return 'assets/images/maceta_dorada.png';
       case 'pot_japanese':
@@ -85,60 +114,336 @@ class GrowingPlantWidget extends StatelessWidget {
     }
   }
 
-  // --- COORDENADAS COMPARTIDAS POR FASE ---
+  // --- MATRIZ COMPLETA DE CALIBRACIÓN RECOPILADA ---
+  CalibrationData get _currentCalibration {
+    final species = widget.equippedSpecies;
+    final pot = widget.equippedPot;
+    final phase = _currentPhase;
+
+    // --- ROSA (sp_rose) ---
+    if (species == 'sp_rose') {
+      if (pot == 'pot_default') {
+        if (phase == 1) return const CalibrationData(plantX: 1, plantY: -17, plantScale: 1.15);
+        if (phase == 2) return const CalibrationData(plantX: 0, plantY: -8, plantScale: 1.15);
+        if (phase == 3) return const CalibrationData(plantX: 0, plantY: -5, plantScale: 1.15);
+        if (phase == 4) return const CalibrationData(plantX: 0, plantY: -3, plantScale: 1.10);
+      } else if (pot == 'pot_gold') {
+        if (phase == 1) return const CalibrationData(plantX: 0, plantY: -15, plantScale: 1.20, potScale: 1.10);
+        if (phase == 2) return const CalibrationData(plantX: -2, plantY: 0, plantScale: 1.10, potScale: 1.10);
+        if (phase == 3) return const CalibrationData(plantX: -2, plantY: 4, plantScale: 1.10, potScale: 1.10);
+        if (phase == 4) return const CalibrationData(plantX: -2, plantY: 4, plantScale: 1.10, potScale: 1.10);
+      } else if (pot == 'pot_japanese') {
+        if (phase == 1) return const CalibrationData(plantX: 1, plantY: -26, plantScale: 1.35, potScale: 1.05);
+        if (phase == 2) return const CalibrationData(plantX: -1, plantY: -17, plantScale: 1.20);
+        if (phase == 3) return const CalibrationData(plantX: -1, plantY: -14, plantScale: 1.20);
+        if (phase == 4) return const CalibrationData(plantX: -1, plantY: -7, plantScale: 1.10);
+      } else if (pot == 'pot_volcanic') {
+        if (phase == 1) return const CalibrationData(plantX: 1, plantY: -18, plantScale: 1.15, potScale: 1.05);
+        if (phase == 2) return const CalibrationData(plantX: 1, plantY: -7, plantScale: 1.15, potScale: 1.05);
+        if (phase == 3) return const CalibrationData(plantX: 1, plantY: -4, plantScale: 1.15, potScale: 1.05);
+        if (phase == 4) return const CalibrationData(plantX: 1, plantY: -2, plantScale: 1.15, potScale: 1.05);
+      }
+    }
+
+    // --- SAKURA (sp_sakura) ---
+    if (species == 'sp_sakura') {
+      if (pot == 'pot_default') {
+        if (phase == 1) return const CalibrationData(plantX: 0, plantY: -20, plantScale: 1.20);
+        if (phase == 2) return const CalibrationData(plantX: 0, plantY: -6, plantScale: 1.10);
+        if (phase == 3) return const CalibrationData(plantX: -1, plantY: -2, plantScale: 1.10);
+        if (phase == 4) return const CalibrationData(plantX: -1, plantY: -2, plantScale: 1.10);
+      } else if (pot == 'pot_gold') {
+        if (phase == 1) return const CalibrationData(plantX: 0, plantY: -20, plantScale: 1.10);
+        if (phase == 2) return const CalibrationData(plantX: 0, plantY: -9, plantScale: 1.10);
+        if (phase == 3) return const CalibrationData(plantX: 0, plantY: -4, plantScale: 1.10);
+        if (phase == 4) return const CalibrationData(plantX: 0, plantY: 0, plantScale: 1.05);
+      } else if (pot == 'pot_japanese') {
+        if (phase == 1) return const CalibrationData(plantX: 1, plantY: -30, plantScale: 1.35);
+        if (phase == 2) return const CalibrationData(plantX: 0, plantY: -20, plantScale: 1.25);
+        if (phase == 3) return const CalibrationData(plantX: 0, plantY: -13, plantScale: 1.20);
+        if (phase == 4) return const CalibrationData(plantX: 0, plantY: -13, plantScale: 1.20);
+      } else if (pot == 'pot_volcanic') {
+        if (phase == 1) return const CalibrationData(plantX: 1, plantY: -20, plantScale: 1.10);
+        if (phase == 2) return const CalibrationData(plantX: 1, plantY: -7, plantScale: 1.10);
+        if (phase == 3) return const CalibrationData(plantX: 1, plantY: -4, plantScale: 1.10);
+        if (phase == 4) return const CalibrationData(plantX: 1, plantY: 0, plantScale: 1.05);
+      }
+    }
+
+    // --- PLANTA BASE / ROBLE (sp_oak) ---
+    if (species == 'sp_oak') {
+      if (pot == 'pot_default') {
+        if (phase == 1) return const CalibrationData(plantX: 0, plantY: -4, plantScale: 1.10);
+        if (phase == 2) return const CalibrationData(plantX: -1, plantY: -7, plantScale: 1.10);
+        if (phase == 3) return const CalibrationData(plantX: 0, plantY: -12, plantScale: 1.15);
+        if (phase == 4) return const CalibrationData(plantX: 1, plantY: -12, plantScale: 1.15);
+      } else if (pot == 'pot_gold') {
+        if (phase == 1) return const CalibrationData(plantX: 0, plantY: -6, plantScale: 1.00);
+        if (phase == 2) return const CalibrationData(plantX: 0, plantY: -4, plantScale: 1.00);
+        if (phase == 3) return const CalibrationData(plantX: 0, plantY: -15, plantScale: 1.15);
+        if (phase == 4) return const CalibrationData(plantX: 1, plantY: -15, plantScale: 1.15);
+      } else if (pot == 'pot_japanese') {
+        if (phase == 1) return const CalibrationData(plantX: 1, plantY: -11, plantScale: 1.15);
+        if (phase == 2) return const CalibrationData(plantX: -1, plantY: -20, plantScale: 1.20);
+        if (phase == 3) return const CalibrationData(plantX: 1, plantY: -20, plantScale: 1.20);
+        if (phase == 4) return const CalibrationData(plantX: 1, plantY: -22, plantScale: 1.20);
+      } else if (pot == 'pot_volcanic') {
+        if (phase == 1) return const CalibrationData(plantX: 0, plantY: -5, plantScale: 1.00);
+        if (phase == 2) return const CalibrationData(plantX: 0, plantY: -7, plantScale: 1.05);
+        if (phase == 3) return const CalibrationData(plantX: 1, plantY: -10, plantScale: 1.10);
+        if (phase == 4) return const CalibrationData(plantX: 1, plantY: -11, plantScale: 1.10);
+      }
+    }
+
+    // Valores por defecto
+    return const CalibrationData();
+  }
+
+  // --- CÁLCULOS FINALES COMBINANDO BASE Y REAJUSTES ---
+  double get _finalPlantX => _currentCalibration.plantX + _manualPlantX;
+  double get _finalPlantY => _currentCalibration.plantY + _manualPlantY;
+  double get _finalPlantScale => _currentCalibration.plantScale * _manualPlantScale;
+
+  double get _finalPotX => _currentCalibration.potX + _manualPotX;
+  double get _finalPotY => _currentCalibration.potY + _manualPotY;
+  double get _finalPotScale => _currentCalibration.potScale * _manualPotScale;
+
   double get _potBottom {
-    if (progress < 0.25) return -91.3;
-    if (progress < 0.50) return -91.3;
-    if (progress < 0.75) return -88.5;
-    return -83.1;
+    double base = -83.1;
+    if (_currentPhase == 1 || _currentPhase == 2) base = -91.3;
+    else if (_currentPhase == 3) base = -88.5;
+    return base + _finalPotY;
   }
 
   double get _potLeft {
-    if (progress < 0.25) return 2.9;
-    if (progress < 0.50) return 5.6;
-    if (progress < 0.75) return 5.6;
-    return 5.6;
+    double base = 5.6;
+    if (_currentPhase == 1) base = 2.9;
+    return base + _finalPotX;
   }
 
-  double get _potWidth {
-    if (progress < 0.25) return 127.6;
-    if (progress < 0.50) return 127.6;
-    if (progress < 0.75) return 127.6;
-    return 127.6;
-  }
+  double get _potWidth => 127.6 * _finalPotScale;
 
   double get _plantBottom {
-    if (progress < 0.25) return -21.6;
-    if (progress < 0.50) return -72.2;
-    if (progress < 0.75) return -72.2;
-    return -72.2;
+    double base = -72.2;
+    if (_currentPhase == 1) base = -21.6;
+    return base + _finalPlantY;
   }
 
   double get _plantLeft {
-    if (progress < 0.25) return 0.0;
-    if (progress < 0.50) return 2.0;
-    if (progress < 0.75) return 2.0;
-    return 2.0;
+    double base = 2.0;
+    if (_currentPhase == 1) base = 0.0;
+    return base + _finalPlantX;
   }
 
   double get _plantSize {
-    if (progress < 0.25) return 150.1;
-    if (progress < 0.50) return 253.4;
-    if (progress < 0.75) return 253.4;
-    return 258.2;
+    double base = 258.2;
+    if (_currentPhase == 1) base = 150.1;
+    else if (_currentPhase == 2 || _currentPhase == 3) base = 253.4;
+    return base * _finalPlantScale;
   }
 
-  String _getDecorationEmoji() {
-    switch (equippedDecoration) {
-      case 'dec_lights':
-        return '💡';
-      case 'dec_owl':
-        return '🦉';
-      case 'dec_books':
-        return '📚';
-      default:
-        return '';
-    }
+  // IMPRIMIR EN TERMINAL
+  void _printCoordinates() {
+    print('\n=============================================');
+    print('📍 DATOS DE CALIBRACIÓN REGISTRADOS:');
+    print('ESPECIE: ${widget.equippedSpecies} | MACETA: ${widget.equippedPot} | FASE: $_currentPhase');
+    print('PLANTA -> Offset X: ${_finalPlantX.toInt()}, Y: ${_finalPlantY.toInt()} | Escala: ${_finalPlantScale.toStringAsFixed(2)}x');
+    print('MACETA -> Offset X: ${_finalPotX.toInt()}, Y: ${_finalPotY.toInt()} | Escala: ${_finalPotScale.toStringAsFixed(2)}x');
+    print('=============================================\n');
+  }
+
+  // MENÚ MODAL DE AJUSTE
+  void _openCalibratorMenu() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1E1E1E),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  const Icon(Icons.tune, color: Colors.amberAccent),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Calibrar: ${widget.equippedSpecies} (Fase $_currentPhase)',
+                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('🌱 PLANTA', style: TextStyle(color: Colors.lightGreenAccent, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        const Text('Pos:', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                          onPressed: () {
+                            setState(() => _manualPlantX -= 1);
+                            setDialogState(() {});
+                          },
+                        ),
+                        Text('X: ${_finalPlantX.toInt()}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                        IconButton(
+                          icon: const Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+                          onPressed: () {
+                            setState(() => _manualPlantX += 1);
+                            setDialogState(() {});
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.arrow_downward, color: Colors.white, size: 20),
+                          onPressed: () {
+                            setState(() => _manualPlantY -= 1);
+                            setDialogState(() {});
+                          },
+                        ),
+                        Text('Y: ${_finalPlantY.toInt()}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                        IconButton(
+                          icon: const Icon(Icons.arrow_upward, color: Colors.white, size: 20),
+                          onPressed: () {
+                            setState(() => _manualPlantY += 1);
+                            setDialogState(() {});
+                          },
+                        ),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        const Text('Tamaño:', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 20),
+                          onPressed: () {
+                            if (_manualPlantScale > 0.2) {
+                              setState(() => _manualPlantScale -= 0.05);
+                              setDialogState(() {});
+                            }
+                          },
+                        ),
+                        Text('${(_finalPlantScale * 100).toInt()}%', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                        IconButton(
+                          icon: const Icon(Icons.add_circle_outline, color: Colors.lightGreenAccent, size: 20),
+                          onPressed: () {
+                            setState(() => _manualPlantScale += 0.05);
+                            setDialogState(() {});
+                          },
+                        ),
+                      ],
+                    ),
+
+                    const Divider(color: Colors.white24, height: 20),
+
+                    const Text('🪴 MACETA', style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        const Text('Pos:', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                          onPressed: () {
+                            setState(() => _manualPotX -= 1);
+                            setDialogState(() {});
+                          },
+                        ),
+                        Text('X: ${_finalPotX.toInt()}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                        IconButton(
+                          icon: const Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+                          onPressed: () {
+                            setState(() => _manualPotX += 1);
+                            setDialogState(() {});
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.arrow_downward, color: Colors.white, size: 20),
+                          onPressed: () {
+                            setState(() => _manualPotY -= 1);
+                            setDialogState(() {});
+                          },
+                        ),
+                        Text('Y: ${_finalPotY.toInt()}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                        IconButton(
+                          icon: const Icon(Icons.arrow_upward, color: Colors.white, size: 20),
+                          onPressed: () {
+                            setState(() => _manualPotY += 1);
+                            setDialogState(() {});
+                          },
+                        ),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        const Text('Tamaño:', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 20),
+                          onPressed: () {
+                            if (_manualPotScale > 0.2) {
+                              setState(() => _manualPotScale -= 0.05);
+                              setDialogState(() {});
+                            }
+                          },
+                        ),
+                        Text('${(_finalPotScale * 100).toInt()}%', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                        IconButton(
+                          icon: const Icon(Icons.add_circle_outline, color: Colors.lightGreenAccent, size: 20),
+                          onPressed: () {
+                            setState(() => _manualPotScale += 0.05);
+                            setDialogState(() {});
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _manualPlantX = 0;
+                      _manualPlantY = 0;
+                      _manualPotX = 0;
+                      _manualPotY = 0;
+                      _manualPlantScale = 1.0;
+                      _manualPotScale = 1.0;
+                    });
+                    setDialogState(() {});
+                  },
+                  child: const Text('Reset', style: TextStyle(color: Colors.redAccent)),
+                ),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+                  icon: const Icon(Icons.print, color: Colors.black, size: 18),
+                  label: const Text('IMPRIMIR', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                  onPressed: () {
+                    _printCoordinates();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Coordenadas impresas en la terminal'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -146,103 +451,53 @@ class GrowingPlantWidget extends StatelessWidget {
     final plantImagePath = _getPlantImagePath();
     final potImagePath = _getPotImagePath();
 
-    return SizedBox(
-      height: 220,
-      width: double.infinity,
-      child: Stack(
-        alignment: Alignment.bottomCenter,
-        clipBehavior: Clip.none,
-        children: [
-          // 1. Decoración lateral
-          if (equippedDecoration != 'dec_none')
-            Positioned(
-              right: -30,
-              bottom: 10,
-              child: Text(
-                _getDecorationEmoji(),
-                style: const TextStyle(fontSize: 30),
-              ),
-            ),
-
-          // 2. MACETA DINÁMICA
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 700),
-            curve: Curves.easeInOutCubic,
-            bottom: _potBottom,
-            child: Transform.translate(
-              offset: Offset(_potLeft, 0),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 700),
-                curve: Curves.easeInOutCubic,
-                width: _potWidth,
-                child: Image.asset(
-                  potImagePath,
-                  key: ValueKey<String>(potImagePath),
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const SizedBox(),
+    return GestureDetector(
+      onLongPress: _openCalibratorMenu,
+      child: SizedBox(
+        height: 220,
+        width: double.infinity,
+        child: Stack(
+          alignment: Alignment.bottomCenter,
+          clipBehavior: Clip.none,
+          children: [
+            // MACETA
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 100),
+              bottom: _potBottom,
+              child: Transform.translate(
+                offset: Offset(_potLeft, 0),
+                child: SizedBox(
+                  width: _potWidth,
+                  child: Image.asset(
+                    potImagePath,
+                    key: ValueKey<String>(potImagePath),
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
             ),
-          ),
 
-          // 3. PLANTA DINÁMICA (Roble, Rosa o Sakura)
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 700),
-            curve: Curves.easeInOutCubic,
-            bottom: _plantBottom,
-            child: Transform.translate(
-              offset: Offset(_plantLeft, 0),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 700),
-                curve: Curves.easeInOutCubic,
-                width: _plantSize,
-                height: _plantSize,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 600),
-                  layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
-                    return Stack(
-                      alignment: Alignment.bottomCenter,
-                      children: <Widget>[
-                        ...previousChildren,
-                        if (currentChild != null) currentChild,
-                      ],
-                    );
-                  },
-                  transitionBuilder: (Widget child, Animation<double> animation) {
-                    return FadeTransition(
-                      opacity: CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeInOut,
-                      ),
-                      child: ScaleTransition(
-                        scale: Tween<double>(begin: 0.92, end: 1.0).animate(
-                          CurvedAnimation(
-                            parent: animation,
-                            curve: Curves.easeOutBack,
-                          ),
-                        ),
-                        alignment: Alignment.bottomCenter,
-                        child: child,
-                      ),
-                    );
-                  },
+            // PLANTA
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 100),
+              bottom: _plantBottom,
+              child: Transform.translate(
+                offset: Offset(_plantLeft, 0),
+                child: SizedBox(
+                  width: _plantSize,
+                  height: _plantSize,
                   child: Image.asset(
                     plantImagePath,
                     key: ValueKey<String>(plantImagePath),
                     width: _plantSize,
                     height: _plantSize,
                     fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => const Icon(
-                      Icons.broken_image,
-                      size: 40,
-                      color: Colors.white70,
-                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
