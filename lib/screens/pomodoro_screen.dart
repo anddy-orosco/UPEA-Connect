@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import '../models/subject_model.dart';
 import '../services/focus_service.dart';
 import '../widgets/growing_plant_widget.dart';
@@ -12,7 +14,7 @@ class PomodoroScreen extends StatefulWidget {
   State<PomodoroScreen> createState() => _PomodoroScreenState();
 }
 
-class _PomodoroScreenState extends State<PomodoroScreen> {
+class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProviderStateMixin {
   static const int _workTime = 25 * 60;
   static const int _breakTime = 5 * 60;
 
@@ -21,7 +23,6 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
   bool _isWorkMode = true;
   Timer? _timer;
 
-  // Variable para pruebas manuales (override)
   double? _debugProgress;
 
   final FocusService _focusService = FocusService();
@@ -33,9 +34,23 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
   String _equippedDecoration = 'dec_none';
   String _equippedSpecies = 'sp_oak';
 
+  // Controlador para manejar la animación de Lottie (1 sola ejecución)
+  late AnimationController _wateringController;
+  bool _isWatering = false;
+
   @override
   void initState() {
     super.initState();
+    _wateringController = AnimationController(vsync: this);
+
+    _wateringController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() {
+          _isWatering = false;
+        });
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkOnboardingAndLoadData();
     });
@@ -44,7 +59,22 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _wateringController.dispose();
     super.dispose();
+  }
+
+  // Función para activar el riego (reproduce la animación 1 vez)
+  void _triggerWatering() {
+    setState(() {
+      _isWatering = true;
+    });
+    _wateringController.reset();
+    _wateringController.forward();
+  }
+
+  String _capitalize(String text) {
+    if (text.isEmpty) return text;
+    return text[0].toUpperCase() + text.substring(1).toLowerCase();
   }
 
   Future<void> _checkOnboardingAndLoadData() async {
@@ -70,7 +100,6 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
       );
     }
 
-    // Carga especie y maceta específicas de la materia activa
     final pot = active?.equippedPot ?? await _focusService.getEquippedPot();
     final species = active?.equippedSpecies ?? await _focusService.getEquippedSpecies();
 
@@ -85,7 +114,6 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
     }
   }
 
-  // Método para cambiar de materia restableciendo el estado de la planta
   Future<void> _switchActiveSubject(String subjectId) async {
     _timer?.cancel();
     await _focusService.setActiveSubjectId(subjectId);
@@ -93,7 +121,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
     setState(() {
       _isRunning = false;
       _timeLeft = _isWorkMode ? _workTime : _breakTime;
-      _debugProgress = null; // Limpia el override manual al cambiar de materia
+      _debugProgress = null;
     });
 
     await _loadData();
@@ -241,7 +269,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
                         : textController.text.trim();
 
                     final bonus = await _focusService.completeOnboarding(
-                      initialSubjectName: name,
+                      initialSubjectName: _capitalize(name),
                       commitmentDays: commitmentDays.toInt(),
                     );
 
@@ -278,7 +306,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
         return AlertDialog(
           title: const Text('Nueva Materia'),
           content: Column(
-            mainAxisSize: MainAxisSize.min, // ✅ Corregido
+            mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: controller,
@@ -297,9 +325,10 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
             ElevatedButton(
               onPressed: () async {
                 if (controller.text.trim().isNotEmpty) {
+                  final formattedName = _capitalize(controller.text.trim());
                   final newSub = SubjectModel(
                     id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    name: controller.text.trim(),
+                    name: formattedName,
                     colorValue: selectedColor,
                     equippedSpecies: 'sp_oak',
                     equippedPot: 'pot_default',
@@ -325,8 +354,9 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
     } else {
       setState(() {
         _isRunning = true;
-        _debugProgress = null; // Al iniciar el timer real, vuelve a sincronizarse automáticamente
+        _debugProgress = null;
       });
+      _triggerWatering(); // Al iniciar, regamos una vez
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (_timeLeft > 0) {
           setState(() => _timeLeft--);
@@ -345,7 +375,6 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
       await _focusService.addCoins(25);
       await _focusService.addMinutesToSubject(_activeSubject!.id, 25);
 
-      // Incrementar y guardar el progreso exclusivo de esta materia
       double newProgress = (_activeSubject!.plantProgress + 0.25).clamp(0.0, 1.0);
 
       await _focusService.updateSubjectPlant(
@@ -386,20 +415,18 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
   @override
   Widget build(BuildContext context) {
     final maxTime = _isWorkMode ? _workTime : _breakTime;
-
-    // Progreso del temporizador actual
     final sessionProgress = 1.0 - (_timeLeft / maxTime);
-
-    // Progreso de planta guardado de la materia activa
     final basePlantProgress = _activeSubject?.plantProgress ?? 0.0;
 
-    // Si el temporizador está corriendo, le sumamos el avance de la sesión
     final calculatedProgress = _isRunning
         ? (basePlantProgress + (sessionProgress * 0.25)).clamp(0.0, 1.0)
         : basePlantProgress;
 
-    // Prioriza el override de pruebas si existe, de lo contrario muestra el progreso real de la materia
     final displayProgress = _debugProgress ?? calculatedProgress;
+
+    int currentStage = (displayProgress * 4).floor() + 1;
+    if (currentStage > 4) currentStage = 4;
+    int progressPercentage = (displayProgress * 100).toInt();
 
     return Scaffold(
       body: Stack(
@@ -423,10 +450,10 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
             ),
           ),
 
-          // 2. Capa de sombra
+          // 2. Capa de oscurecimiento suave
           Positioned.fill(
             child: Container(
-              color: Colors.black.withOpacity(0.18),
+              color: Colors.black.withOpacity(0.12),
             ),
           ),
 
@@ -434,20 +461,36 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
           SafeArea(
             child: Column(
               children: [
-                // Barra Superior
+                // Barra Superior Única
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Enfoque Académico',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          shadows: [Shadow(blurRadius: 4, color: Colors.black54)],
-                        ),
+                      Row(
+                        children: [
+                          const Text(
+                            'UPEA Connect',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              shadows: [Shadow(blurRadius: 6, color: Colors.black87)],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.white24,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              _isWorkMode ? '☀️ Día' : '🌙 Noche',
+                              style: const TextStyle(fontSize: 11, color: Colors.white),
+                            ),
+                          ),
+                        ],
                       ),
                       Row(
                         children: [
@@ -463,20 +506,20 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
                             },
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: Colors.amber.shade100,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.monetization_on_rounded,
-                                    color: Colors.amber, size: 20),
-                                const SizedBox(width: 6),
+                                const Icon(Icons.monetization_on_rounded, color: Colors.amber, size: 18),
+                                const SizedBox(width: 4),
                                 Text(
                                   '$_coins',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
+                                    fontSize: 13,
                                     color: Colors.amber.shade900,
                                   ),
                                 ),
@@ -489,45 +532,88 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
                   ),
                 ),
 
-                // Selector de Materias
+                // Selector de Materias Optimizado
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 4),
                   child: _buildSubjectSelector(),
                 ),
 
-                // Estado Día / Noche
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Text(
-                    _isWorkMode ? '☀️ Modo Estudio (Día)' : '🌙 Modo Descanso (Noche)',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                      shadows: [Shadow(blurRadius: 6, color: Colors.black87)],
-                    ),
-                  ),
-                ),
-
-                // Área de la Planta en Crecimiento
+                // Área Principal de la Planta + Animación de Riego
                 Expanded(
-                  child: Center(
-                    child: GrowingPlantWidget(
-                      progress: displayProgress,
-                      equippedPot: _equippedPot,
-                      equippedDecoration: _equippedDecoration,
-                      equippedSpecies: _equippedSpecies,
-                    ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Center(
+                          child: Stack(
+                            clipBehavior: Clip.none, // Permite sobresalir sin cortarse
+                            alignment: Alignment.center,
+                            children: [
+                              // 1. Widget de la Planta (Capa inferior)
+                              GrowingPlantWidget(
+                                progress: displayProgress,
+                                equippedPot: _equippedPot,
+                                equippedDecoration: _equippedDecoration,
+                                equippedSpecies: _equippedSpecies,
+                              ),
+
+                              // 2. Animación de Regadera (Subida más arriba: top: -190)
+                              if (_isWatering)
+                                Positioned(
+                                  top: -190,  // Subido significativamente para abarcar la parte superior
+                                  right: -25, // Mantiene la caída de agua centrada en la maceta
+                                  child: IgnorePointer(
+                                    child: Transform.scale(
+                                      scaleX: -1, // Voltea horizontalmente
+                                      child: SizedBox(
+                                        width: 550,
+                                        height: 550,
+                                        child: Lottie.asset(
+                                          'assets/animations/Watering.json',
+                                          controller: _wateringController,
+                                          fit: BoxFit.contain,
+                                          onLoaded: (composition) {
+                                            _wateringController.duration = composition.duration;
+                                            _wateringController.forward();
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Indicador de Progreso de la Planta
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black45,
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Text(
+                          '🌱 Fase $currentStage de 4 • $progressPercentage% de Crecimiento',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
                   ),
                 ),
 
                 // Panel para Pruebas Rápidas (Debug Controls)
                 Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(15),
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -536,10 +622,10 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green.shade700,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         ),
-                        icon: const Icon(Icons.nature_rounded, size: 18),
-                        label: const Text('Fase +', style: TextStyle(fontSize: 12)),
+                        icon: const Icon(Icons.nature_rounded, size: 16),
+                        label: const Text('Fase +', style: TextStyle(fontSize: 11)),
                         onPressed: () async {
                           double current = displayProgress;
                           double next = (current + 0.25) > 1.0 ? 0.0 : current + 0.25;
@@ -548,7 +634,6 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
                             _debugProgress = next;
                           });
 
-                          // Guardar inmediatamente en la materia activa
                           if (_activeSubject != null) {
                             await _focusService.updateSubjectPlant(
                               subjectId: _activeSubject!.id,
@@ -562,78 +647,110 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _isWorkMode ? Colors.indigo : Colors.amber.shade800,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         ),
-                        icon: Icon(_isWorkMode ? Icons.nights_stay : Icons.wb_sunny, size: 18),
-                        label: Text(_isWorkMode ? 'Ver Noche' : 'Ver Día', style: const TextStyle(fontSize: 12)),
+                        icon: Icon(_isWorkMode ? Icons.nights_stay : Icons.wb_sunny, size: 16),
+                        label: Text(_isWorkMode ? 'Ver Noche' : 'Ver Día', style: const TextStyle(fontSize: 11)),
                         onPressed: _switchMode,
                       ),
                     ],
                   ),
                 ),
 
-                // Panel Flotante del Temporizador Principal
-                Container(
-                  margin: const EdgeInsets.all(16),
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.65),
-                    borderRadius: BorderRadius.circular(25),
-                    border: Border.all(color: Colors.white24),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: LinearProgressIndicator(
-                          value: sessionProgress,
-                          minHeight: 8,
-                          backgroundColor: Colors.white24,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            _isWorkMode ? Colors.amber : Colors.tealAccent,
-                          ),
+                // Panel del Temporizador con Cristal (Glassmorphism)
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.4),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: Colors.white.withOpacity(0.2)),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: LinearProgressIndicator(
+                                value: sessionProgress,
+                                minHeight: 6,
+                                backgroundColor: Colors.white24,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  _isWorkMode ? Colors.amberAccent : Colors.tealAccent,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+
+                            Text(
+                              _formatTime(_timeLeft),
+                              style: const TextStyle(
+                                fontSize: 42,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Controles de Acción
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Botón dedicado para Regar Planta
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue.shade600,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.water_drop_rounded, size: 20),
+                                  label: const Text(
+                                    'Regar Planta',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  ),
+                                  onPressed: _triggerWatering,
+                                ),
+                                const SizedBox(width: 8),
+
+                                // Botón Principal de Estudiar / Pausar
+                                FloatingActionButton.extended(
+                                  heroTag: 'btnPlay',
+                                  onPressed: _toggleTimer,
+                                  backgroundColor: Colors.indigo,
+                                  elevation: 2,
+                                  icon: Icon(
+                                    _isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                    color: Colors.white,
+                                  ),
+                                  label: Text(
+                                    _isRunning ? 'Pausar' : 'Estudiar',
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+
+                                // Botón de Reiniciar
+                                IconButton.filledTonal(
+                                  onPressed: _resetTimer,
+                                  icon: const Icon(Icons.refresh_rounded),
+                                  iconSize: 22,
+                                  padding: const EdgeInsets.all(12),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 12),
-
-                      Text(
-                        _formatTime(_timeLeft),
-                        style: const TextStyle(
-                          fontSize: 44,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          FloatingActionButton.extended(
-                            heroTag: 'btnPlay',
-                            onPressed: _toggleTimer,
-                            backgroundColor: _isWorkMode ? Colors.indigoAccent : Colors.teal,
-                            elevation: 4,
-                            icon: Icon(
-                              _isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                              color: Colors.white,
-                            ),
-                            label: Text(
-                              _isRunning ? 'Pausar' : 'Comenzar',
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          IconButton.filledTonal(
-                            onPressed: _resetTimer,
-                            icon: const Icon(Icons.refresh_rounded),
-                            iconSize: 26,
-                            padding: const EdgeInsets.all(14),
-                          ),
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ],
@@ -645,62 +762,74 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
   }
 
   Widget _buildSubjectSelector() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.4),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withOpacity(0.2)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Materia Activa',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'MATERIA ACTIVA',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  IconButton(
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                    onPressed: _showAddSubjectDialog,
+                    icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
+                    color: Colors.white,
+                  ),
+                ],
               ),
-              IconButton(
-                constraints: const BoxConstraints(),
-                padding: EdgeInsets.zero,
-                onPressed: _showAddSubjectDialog,
-                icon: const Icon(Icons.add_circle_outline_rounded, size: 22),
-                color: Colors.indigo,
+              const SizedBox(height: 6),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: _subjects.map((subject) {
+                    final isSelected = _activeSubject?.id == subject.id;
+                    final subColor = Color(subject.colorValue);
+                    final displayName = _capitalize(subject.name);
+
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 6.0),
+                      child: FilterChip(
+                        selected: isSelected,
+                        label: Text(displayName),
+                        selectedColor: subColor,
+                        backgroundColor: Colors.white12,
+                        side: BorderSide(
+                          color: isSelected ? Colors.transparent : Colors.white24,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        labelStyle: TextStyle(
+                          fontSize: 11,
+                          color: isSelected ? Colors.white : Colors.white70,
+                        ),
+                        onSelected: (_) => _switchActiveSubject(subject.id),
+                      ),
+                    );
+                  }).toList(),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: _subjects.map((subject) {
-                final isSelected = _activeSubject?.id == subject.id;
-                final subColor = Color(subject.colorValue);
-
-                return Padding(
-                  padding: const EdgeInsets.only(right: 6.0),
-                  child: FilterChip(
-                    selected: isSelected,
-                    label: Text(subject.name),
-                    selectedColor: subColor,
-                    backgroundColor: Colors.white,
-                    labelStyle: TextStyle(
-                      fontSize: 12,
-                      color: isSelected ? Colors.white : Colors.black87,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    ),
-                    onSelected: (bool selected) async {
-                      if (selected) {
-                        await _switchActiveSubject(subject.id);
-                      }
-                    },
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

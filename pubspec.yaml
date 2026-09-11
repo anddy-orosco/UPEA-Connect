@@ -24,6 +24,9 @@ dependencies:
   http: ^1.2.0
   provider: ^6.1.2
 
+  # Animaciones
+  lottie: ^3.1.2
+
   # Notificaciones y zonas horarias
   flutter_local_notifications: ^17.2.2
   timezone: ^0.9.4
@@ -46,9 +49,10 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # Carga automáticamente todas las imágenes de la carpeta (plantas, macetas, fondos, etc.)
+  # Carga de recursos (imágenes y animaciones)
   assets:
     - assets/images/
+    - assets/animations/
 
 flutter_launcher_icons:
   android: "launcher_icon"
