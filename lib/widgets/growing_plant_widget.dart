@@ -60,7 +60,7 @@ class GrowingPlantWidget extends StatefulWidget {
 }
 
 class _GrowingPlantWidgetState extends State<GrowingPlantWidget> {
-  // Offsets y escalas manuales de emergencia / reajuste
+  // Offsets y escalas manuales
   double _manualPlantX = 0.0;
   double _manualPlantY = 0.0;
   double _manualPotX = 0.0;
@@ -68,7 +68,9 @@ class _GrowingPlantWidgetState extends State<GrowingPlantWidget> {
   double _manualPlantScale = 1.0;
   double _manualPotScale = 1.0;
 
-  // Determinar fase actual (1 a 4)
+  // Duración estándar de las animaciones suaves
+  static const Duration _animDuration = Duration(milliseconds: 450);
+
   int get _currentPhase {
     if (widget.progress >= 0.75) return 4;
     if (widget.progress >= 0.50) return 3;
@@ -76,7 +78,6 @@ class _GrowingPlantWidgetState extends State<GrowingPlantWidget> {
     return 1;
   }
 
-  // --- SELECCIÓN DINÁMICA DE IMÁGENES ---
   String _getPlantImagePath() {
     switch (widget.equippedSpecies) {
       case 'sp_rose':
@@ -114,13 +115,11 @@ class _GrowingPlantWidgetState extends State<GrowingPlantWidget> {
     }
   }
 
-  // --- MATRIZ COMPLETA DE CALIBRACIÓN RECOPILADA ---
   CalibrationData get _currentCalibration {
     final species = widget.equippedSpecies;
     final pot = widget.equippedPot;
     final phase = _currentPhase;
 
-    // --- ROSA (sp_rose) ---
     if (species == 'sp_rose') {
       if (pot == 'pot_default') {
         if (phase == 1) return const CalibrationData(plantX: 1, plantY: -17, plantScale: 1.15);
@@ -145,7 +144,6 @@ class _GrowingPlantWidgetState extends State<GrowingPlantWidget> {
       }
     }
 
-    // --- SAKURA (sp_sakura) ---
     if (species == 'sp_sakura') {
       if (pot == 'pot_default') {
         if (phase == 1) return const CalibrationData(plantX: 0, plantY: -20, plantScale: 1.20);
@@ -170,7 +168,6 @@ class _GrowingPlantWidgetState extends State<GrowingPlantWidget> {
       }
     }
 
-    // --- PLANTA BASE / ROBLE (sp_oak) ---
     if (species == 'sp_oak') {
       if (pot == 'pot_default') {
         if (phase == 1) return const CalibrationData(plantX: 0, plantY: -4, plantScale: 1.10);
@@ -195,11 +192,9 @@ class _GrowingPlantWidgetState extends State<GrowingPlantWidget> {
       }
     }
 
-    // Valores por defecto
     return const CalibrationData();
   }
 
-  // --- CÁLCULOS FINALES COMBINANDO BASE Y REAJUSTES ---
   double get _finalPlantX => _currentCalibration.plantX + _manualPlantX;
   double get _finalPlantY => _currentCalibration.plantY + _manualPlantY;
   double get _finalPlantScale => _currentCalibration.plantScale * _manualPlantScale;
@@ -242,7 +237,6 @@ class _GrowingPlantWidgetState extends State<GrowingPlantWidget> {
     return base * _finalPlantScale;
   }
 
-  // IMPRIMIR EN TERMINAL
   void _printCoordinates() {
     print('\n=============================================');
     print('📍 DATOS DE CALIBRACIÓN REGISTRADOS:');
@@ -252,7 +246,6 @@ class _GrowingPlantWidgetState extends State<GrowingPlantWidget> {
     print('=============================================\n');
   }
 
-  // MENÚ MODAL DE AJUSTE
   void _openCalibratorMenu() {
     showDialog(
       context: context,
@@ -342,9 +335,7 @@ class _GrowingPlantWidgetState extends State<GrowingPlantWidget> {
                         ),
                       ],
                     ),
-
                     const Divider(color: Colors.white24, height: 20),
-
                     const Text('🪴 MACETA', style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
                     Row(
@@ -460,14 +451,20 @@ class _GrowingPlantWidgetState extends State<GrowingPlantWidget> {
           alignment: Alignment.bottomCenter,
           clipBehavior: Clip.none,
           children: [
-            // MACETA
+            // --- MACETA CON ANIMACIÓN FLUIDA ---
             AnimatedPositioned(
-              duration: const Duration(milliseconds: 100),
+              duration: _animDuration,
+              curve: Curves.easeInOutCubic,
               bottom: _potBottom,
-              child: Transform.translate(
-                offset: Offset(_potLeft, 0),
-                child: SizedBox(
-                  width: _potWidth,
+              left: (MediaQuery.of(context).size.width / 2) - (_potWidth / 2) + _potLeft,
+              child: AnimatedContainer(
+                duration: _animDuration,
+                curve: Curves.easeInOutCubic,
+                width: _potWidth,
+                child: AnimatedSwitcher(
+                  duration: _animDuration,
+                  switchInCurve: Curves.easeIn,
+                  switchOutCurve: Curves.easeOut,
                   child: Image.asset(
                     potImagePath,
                     key: ValueKey<String>(potImagePath),
@@ -477,15 +474,30 @@ class _GrowingPlantWidgetState extends State<GrowingPlantWidget> {
               ),
             ),
 
-            // PLANTA
+            // --- PLANTA CON ANIMACIÓN Y TRANSICIÓN DE FASE ---
             AnimatedPositioned(
-              duration: const Duration(milliseconds: 100),
+              duration: _animDuration,
+              curve: Curves.easeInOutBack,
               bottom: _plantBottom,
-              child: Transform.translate(
-                offset: Offset(_plantLeft, 0),
-                child: SizedBox(
-                  width: _plantSize,
-                  height: _plantSize,
+              left: (MediaQuery.of(context).size.width / 2) - (_plantSize / 2) + _plantLeft,
+              child: AnimatedContainer(
+                duration: _animDuration,
+                curve: Curves.easeInOutBack,
+                width: _plantSize,
+                height: _plantSize,
+                child: AnimatedSwitcher(
+                  duration: _animDuration,
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeIn,
+                  transitionBuilder: (Widget child, Animation<double> animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: ScaleTransition(
+                        scale: Tween<double>(begin: 0.85, end: 1.0).animate(animation),
+                        child: child,
+                      ),
+                    );
+                  },
                   child: Image.asset(
                     plantImagePath,
                     key: ValueKey<String>(plantImagePath),
