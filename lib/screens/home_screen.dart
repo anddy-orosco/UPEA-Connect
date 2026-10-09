@@ -18,6 +18,7 @@ import 'grade_calculator_screen.dart';
 import 'pomodoro_screen.dart';
 import 'chat_screen.dart';
 import 'login_screen.dart';
+import 'documents_screen.dart'; // <--- Importamos la nueva Bóveda de Documentos
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -154,6 +155,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return 'Asistente IA';
       case 7:
         return 'Enfoque Académico';
+      case 8:
+        return 'Bóveda de Documentos'; // <--- Título de la nueva pantalla
       default:
         return 'Inicio';
     }
@@ -198,6 +201,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return const ChatScreen();
       case 7:
         return const PomodoroScreen();
+      case 8:
+        return const DocumentsScreen(); // <--- Carga la pantalla de documentos
       default:
         return _buildHomeContent();
     }
@@ -308,11 +313,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(height: 10),
                             _buildFeatureCard(
                               title: 'Documentos',
-                              subtitle: 'Formatos y trámites universitarios',
+                              subtitle: 'Matrícula, carnets y archivos clave',
                               icon: Icons.folder_shared_rounded,
                               color: Colors.purple.shade600,
-                              index: -1,
-                              isComingSoon: true,
+                              index: 8, // <--- Conectado a la Bóveda de Documentos
+                              isComingSoon: false, // <--- Desbloqueado para la feria
                             ),
                             const SizedBox(height: 10),
                             _buildFeatureCard(

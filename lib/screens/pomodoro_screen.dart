@@ -6,7 +6,7 @@ import '../models/subject_model.dart';
 import '../services/focus_service.dart';
 import '../widgets/growing_plant_widget.dart';
 import 'focus_store_screen.dart';
-import 'analytics_screen.dart'; // Pantalla de analítica y gráficos
+import 'analytics_screen.dart';
 
 class PomodoroScreen extends StatefulWidget {
   const PomodoroScreen({super.key});
@@ -44,9 +44,11 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
     _wateringController = AnimationController(vsync: this);
     _wateringController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        setState(() {
-          _isWatering = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isWatering = false;
+          });
+        }
       }
     });
 
@@ -63,6 +65,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
   }
 
   void _triggerWatering() {
+    if (!mounted) return;
     setState(() {
       _isWatering = true;
     });
@@ -115,12 +118,13 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
   Future<void> _switchActiveSubject(String subjectId) async {
     _timer?.cancel();
     await _focusService.setActiveSubjectId(subjectId);
-    setState(() {
-      _isRunning = false;
-      _timeLeft = _isWorkMode ? _workTime : _breakTime;
-      _debugProgress = null;
-    });
-
+    if (mounted) {
+      setState(() {
+        _isRunning = false;
+        _timeLeft = _isWorkMode ? _workTime : _breakTime;
+        _debugProgress = null;
+      });
+    }
     await _loadData();
   }
 
@@ -347,16 +351,26 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
   void _toggleTimer() {
     if (_isRunning) {
       _timer?.cancel();
-      setState(() => _isRunning = false);
+      setState(() {
+        _isRunning = false;
+      });
     } else {
       setState(() {
         _isRunning = true;
         _debugProgress = null;
       });
       _triggerWatering();
+
+      _timer?.cancel();
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!mounted) {
+          timer.cancel();
+          return;
+        }
         if (_timeLeft > 0) {
-          setState(() => _timeLeft--);
+          setState(() {
+            _timeLeft--;
+          });
         } else {
           _completeSession();
         }
@@ -366,7 +380,11 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
 
   Future<void> _completeSession() async {
     _timer?.cancel();
-    setState(() => _isRunning = false);
+    if (mounted) {
+      setState(() {
+        _isRunning = false;
+      });
+    }
 
     if (_isWorkMode && _activeSubject != null) {
       await _focusService.addCoins(25);
@@ -386,21 +404,25 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
 
   void _resetTimer() {
     _timer?.cancel();
-    setState(() {
-      _isRunning = false;
-      _debugProgress = null;
-      _timeLeft = _isWorkMode ? _workTime : _breakTime;
-    });
+    if (mounted) {
+      setState(() {
+        _isRunning = false;
+        _debugProgress = null;
+        _timeLeft = _isWorkMode ? _workTime : _breakTime;
+      });
+    }
   }
 
   void _switchMode() {
     _timer?.cancel();
-    setState(() {
-      _isRunning = false;
-      _debugProgress = null;
-      _isWorkMode = !_isWorkMode;
-      _timeLeft = _isWorkMode ? _workTime : _breakTime;
-    });
+    if (mounted) {
+      setState(() {
+        _isRunning = false;
+        _debugProgress = null;
+        _isWorkMode = !_isWorkMode;
+        _timeLeft = _isWorkMode ? _workTime : _breakTime;
+      });
+    }
   }
 
   String _formatTime(int seconds) {
@@ -421,14 +443,10 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
 
     final displayProgress = _debugProgress ?? calculatedProgress;
 
-    int currentStage = (displayProgress * 4).floor() + 1;
-    if (currentStage > 4) currentStage = 4;
-    int progressPercentage = (displayProgress * 100).toInt();
-
     return Scaffold(
       body: Stack(
         children: [
-          // 1. Imagen de Fondo Dinámica
+          // 1. Fondo Dinámico
           Positioned.fill(
             child: AnimatedSwitcher(
               duration: const Duration(seconds: 1),
@@ -447,18 +465,18 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
             ),
           ),
 
-          // 2. Capa de oscurecimiento suave
+          // 2. Oscurecimiento sutil
           Positioned.fill(
             child: Container(
               color: Colors.black.withOpacity(0.12),
             ),
           ),
 
-          // 3. Interfaz Principal Limpia
+          // 3. Interfaz Principal
           SafeArea(
             child: Column(
               children: [
-                // Barra Superior con Botón de Analítica y Tienda
+                // Barra Superior
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   child: Row(
@@ -491,7 +509,6 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                       ),
                       Row(
                         children: [
-                          // Botón para abrir la Pantalla de Estadísticas y Gráficos
                           IconButton(
                             icon: const Icon(Icons.bar_chart_rounded, color: Colors.white, size: 26),
                             tooltip: 'Ver Analítica y Gráficos',
@@ -502,7 +519,6 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                               );
                             },
                           ),
-                          // Botón de Tienda
                           IconButton(
                             icon: const Icon(Icons.storefront_rounded, color: Colors.white, size: 26),
                             tooltip: 'Tienda de Enfoque',
@@ -547,72 +563,48 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                   child: _buildSubjectSelector(),
                 ),
 
-                // Área Principal de la Planta + Animación de Riego (Sin tarjetas estorbosas)
+                // Área Principal de la Planta
                 Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Center(
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            alignment: Alignment.center,
-                            children: [
-                              GrowingPlantWidget(
-                                progress: displayProgress,
-                                equippedPot: _equippedPot,
-                                equippedDecoration: _equippedDecoration,
-                                equippedSpecies: _equippedSpecies,
-                              ),
-                              if (_isWatering)
-                                Positioned(
-                                  top: -190,
-                                  right: -25,
-                                  child: IgnorePointer(
-                                    child: Transform.scale(
-                                      scaleX: -1,
-                                      child: SizedBox(
-                                        width: 550,
-                                        height: 550,
-                                        child: Lottie.asset(
-                                          'assets/animations/Watering.json',
-                                          controller: _wateringController,
-                                          fit: BoxFit.contain,
-                                          onLoaded: (composition) {
-                                            _wateringController.duration = composition.duration;
-                                            _wateringController.forward();
-                                          },
-                                        ),
-                                      ),
-                                    ),
+                  child: Center(
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      alignment: Alignment.center,
+                      children: [
+                        GrowingPlantWidget(
+                          progress: displayProgress,
+                          equippedPot: _equippedPot,
+                          equippedDecoration: _equippedDecoration,
+                          equippedSpecies: _equippedSpecies,
+                        ),
+                        if (_isWatering)
+                          Positioned(
+                            top: -190,
+                            right: -25,
+                            child: IgnorePointer(
+                              child: Transform.scale(
+                                scaleX: -1,
+                                child: SizedBox(
+                                  width: 550,
+                                  height: 550,
+                                  child: Lottie.asset(
+                                    'assets/animations/Watering.json',
+                                    controller: _wateringController,
+                                    fit: BoxFit.contain,
+                                    onLoaded: (composition) {
+                                      _wateringController.duration = composition.duration;
+                                      _wateringController.forward();
+                                    },
                                   ),
                                 ),
-                            ],
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black45,
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Text(
-                          '🌱 Fase $currentStage de 4 • $progressPercentage% de Crecimiento',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
 
-                // Panel para Pruebas Rápidas (Debug Controls)
+                // Panel de Pruebas Rápidas (Debug Controls)
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -662,7 +654,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                   ),
                 ),
 
-                // Panel del Temporizador con Cristal (Glassmorphism)
+                // Panel del Temporizador con el MISMO diseño exacto del selector de materias
                 Padding(
                   padding: const EdgeInsets.all(14),
                   child: ClipRRect(
@@ -690,18 +682,36 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 8),
-
-                            Text(
-                              _formatTime(_timeLeft),
-                              style: const TextStyle(
-                                fontSize: 42,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                fontFamily: 'monospace',
-                              ),
-                            ),
                             const SizedBox(height: 10),
+
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (_isRunning)
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    margin: const EdgeInsets.only(right: 10),
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.greenAccent,
+                                      boxShadow: [
+                                        BoxShadow(color: Colors.greenAccent, blurRadius: 6),
+                                      ],
+                                    ),
+                                  ),
+                                Text(
+                                  _formatTime(_timeLeft),
+                                  style: const TextStyle(
+                                    fontSize: 42,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
 
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -717,7 +727,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                                   ),
                                   icon: const Icon(Icons.water_drop_rounded, size: 20),
                                   label: const Text(
-                                    'Regar Planta',
+                                    'Regar',
                                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                                   ),
                                   onPressed: _triggerWatering,
@@ -727,7 +737,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                                 FloatingActionButton.extended(
                                   heroTag: 'btnPlay',
                                   onPressed: _toggleTimer,
-                                  backgroundColor: Colors.indigo,
+                                  backgroundColor: _isRunning ? Colors.orange.shade800 : Colors.indigo,
                                   elevation: 2,
                                   icon: Icon(
                                     _isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
