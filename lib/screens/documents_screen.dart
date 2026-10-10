@@ -120,6 +120,48 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
     }
   }
 
+  // 🗑️ Método para confirmar y eliminar un documento de la bóveda
+  void _confirmDeleteDocument(DocumentModel doc) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: const Text('Eliminar Documento', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          content: Text('¿Estás seguro de que deseas eliminar "${doc.title}" de tu bóveda? Esta acción no se puede deshacer.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade600,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                setState(() {
+                  _documents.removeWhere((d) => d.id == doc.id);
+                });
+                await _saveToPrefs(_documents);
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('🗑️ Documento eliminado correctamente'), backgroundColor: Colors.red),
+                  );
+                }
+              },
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _openFilePickerForDocument({required Function(Map<String, String> fileData) onFileSelected}) {
     showModalBottomSheet(
       context: context,
@@ -493,14 +535,14 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         icon: const Icon(Icons.edit_rounded, size: 18),
-                        label: const Text('Cambiar Archivo'),
+                        label: const Text('Cambiar'),
                         onPressed: () {
                           Navigator.pop(context);
                           _replaceDocumentFile(doc);
                         },
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
@@ -517,6 +559,21 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                           _shareDocument(doc);
                         },
                       ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.red.shade50,
+                        foregroundColor: Colors.red.shade700,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.all(12),
+                      ),
+                      icon: const Icon(Icons.delete_outline_rounded, size: 20),
+                      tooltip: 'Eliminar documento',
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _confirmDeleteDocument(doc);
+                      },
                     ),
                   ],
                 ),
@@ -629,9 +686,22 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Lista de documentos
+            // Lista de documentos con opción rápida de eliminar
             Expanded(
-              child: ListView.builder(
+              child: _documents.isEmpty
+                  ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.folder_open_rounded, size: 64, color: Colors.grey.shade400),
+                    const SizedBox(height: 12),
+                    Text('Tu bóveda está vacía', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade600)),
+                    const SizedBox(height: 4),
+                    const Text('Presiona el botón "+" arriba para agregar tus documentos.', style: TextStyle(fontSize: 12, color: Colors.grey), textAlign: TextAlign.center),
+                  ],
+                ),
+              )
+                  : ListView.builder(
                 physics: const BouncingScrollPhysics(),
                 itemCount: _documents.length,
                 itemBuilder: (context, index) {
@@ -731,7 +801,8 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(width: 10),
+                                  const SizedBox(width: 8),
+                                  // Botón rápido de compartir
                                   Material(
                                     color: primaryColor.withOpacity(0.08),
                                     borderRadius: BorderRadius.circular(14),
@@ -741,6 +812,20 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                                       child: Padding(
                                         padding: const EdgeInsets.all(12.0),
                                         child: Icon(Icons.share_rounded, color: primaryColor, size: 20),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  // Botón rápido de eliminar en la tarjeta
+                                  Material(
+                                    color: Colors.red.shade50,
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(14),
+                                      onTap: () => _confirmDeleteDocument(doc),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(12.0),
+                                        child: Icon(Icons.delete_outline_rounded, color: Colors.red.shade700, size: 20),
                                       ),
                                     ),
                                   ),
