@@ -18,7 +18,7 @@ import 'grade_calculator_screen.dart';
 import 'pomodoro_screen.dart';
 import 'chat_screen.dart';
 import 'login_screen.dart';
-import 'documents_screen.dart'; // <--- Importamos la nueva Bóveda de Documentos
+import 'documents_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -156,7 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 7:
         return 'Enfoque Académico';
       case 8:
-        return 'Bóveda de Documentos'; // <--- Título de la nueva pantalla
+        return 'Bóveda de Documentos';
       default:
         return 'Inicio';
     }
@@ -202,7 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 7:
         return const PomodoroScreen();
       case 8:
-        return const DocumentsScreen(); // <--- Carga la pantalla de documentos
+        return const DocumentsScreen();
       default:
         return _buildHomeContent();
     }
@@ -260,7 +260,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Menú deslizable (PageView)
+                  // Menú deslizable (PageView con el nuevo orden)
                   SizedBox(
                     height: 265,
                     child: PageView(
@@ -271,9 +271,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         });
                       },
                       children: [
-                        // PÁGINA 1
+                        // PÁGINA 1: Pomodoro, Calendario, Apuntes
                         Column(
                           children: [
+                            _buildFeatureCard(
+                              title: 'Enfoque Académico',
+                              subtitle: 'Método Pomodoro y racha de estudio',
+                              icon: Icons.timer_rounded,
+                              color: Colors.deepOrange.shade600,
+                              index: 7,
+                            ),
+                            const SizedBox(height: 10),
                             _buildFeatureCard(
                               title: 'Calendario Académico',
                               subtitle: 'Fechas importantes y exámenes',
@@ -289,6 +297,20 @@ class _HomeScreenState extends State<HomeScreen> {
                               color: Colors.amber.shade700,
                               index: 4,
                             ),
+                          ],
+                        ),
+
+                        // PÁGINA 2: Documentos, Calculadora, Mapa
+                        Column(
+                          children: [
+                            _buildFeatureCard(
+                              title: 'Documentos',
+                              subtitle: 'Matrícula, carnets y archivos clave',
+                              icon: Icons.folder_shared_rounded,
+                              color: Colors.purple.shade600,
+                              index: 8,
+                              isComingSoon: false,
+                            ),
                             const SizedBox(height: 10),
                             _buildFeatureCard(
                               title: 'Calculadora de Notas',
@@ -296,28 +318,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.calculate_rounded,
                               color: Colors.teal.shade600,
                               index: 5,
-                            ),
-                          ],
-                        ),
-
-                        // PÁGINA 2
-                        Column(
-                          children: [
-                            _buildFeatureCard(
-                              title: 'Enfoque Académico',
-                              subtitle: 'Método Pomodoro y racha de estudio',
-                              icon: Icons.timer_rounded,
-                              color: Colors.deepOrange.shade600,
-                              index: 7,
-                            ),
-                            const SizedBox(height: 10),
-                            _buildFeatureCard(
-                              title: 'Documentos',
-                              subtitle: 'Matrícula, carnets y archivos clave',
-                              icon: Icons.folder_shared_rounded,
-                              color: Colors.purple.shade600,
-                              index: 8, // <--- Conectado a la Bóveda de Documentos
-                              isComingSoon: false, // <--- Desbloqueado para la feria
                             ),
                             const SizedBox(height: 10),
                             _buildFeatureCard(

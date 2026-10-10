@@ -264,7 +264,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -313,7 +313,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(_getIconForType(doc.fileType), size: 72, color: Colors.indigo),
+          Icon(_getIconForType(doc.fileType), size: 72, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 16),
           const Text('Sin archivo adjunto todavía', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54)),
           const SizedBox(height: 6),
@@ -486,7 +486,12 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(foregroundColor: Colors.indigo, side: const BorderSide(color: Colors.indigo), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), padding: const EdgeInsets.symmetric(vertical: 12)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Theme.of(context).colorScheme.primary,
+                          side: BorderSide(color: Theme.of(context).colorScheme.primary),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
                         icon: const Icon(Icons.edit_rounded, size: 18),
                         label: const Text('Cambiar Archivo'),
                         onPressed: () {
@@ -498,7 +503,13 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), padding: const EdgeInsets.symmetric(vertical: 12), elevation: 0),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          elevation: 0,
+                        ),
                         icon: const Icon(Icons.share_rounded, size: 18),
                         label: const Text('Compartir'),
                         onPressed: () {
@@ -540,67 +551,85 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
   @override
   Widget build(BuildContext context) {
     final activeCount = _documents.where((d) => d.filePath.isNotEmpty).length;
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
-      appBar: AppBar(
-        title: const Text('Bóveda de Documentos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        backgroundColor: Colors.indigo,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline_rounded, size: 28),
-            tooltip: 'Subir Documento',
-            onPressed: _showAddDocumentDialog,
-          ),
-        ],
-      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Cabecera elegante que reemplaza el texto repetido con información útil
+            // 📂 Banner sincronizado exactamente con el color principal del AppBar global
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.indigo.shade900, Colors.indigo.shade600],
+                  colors: [
+                    primaryColor,
+                    Color.lerp(primaryColor, Colors.black, 0.25) ?? primaryColor,
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: Colors.indigo.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))],
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryColor.withOpacity(0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.folder_special_rounded, color: Colors.white, size: 28),
+                    child: const Icon(Icons.folder_special_rounded, color: Colors.white, size: 30),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Tus Credenciales y Archivos', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                        const SizedBox(height: 3),
-                        Text('$activeCount de ${_documents.length} documentos listos y seguros', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                        const Text(
+                          'Tus Credenciales y Archivos',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$activeCount de ${_documents.length} documentos listos y seguros',
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
                       ],
+                    ),
+                  ),
+                  // Botón de añadir profesional integrado en el banner
+                  Material(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: _showAddDocumentDialog,
+                      child: const Padding(
+                        padding: EdgeInsets.all(12.0),
+                        child: Icon(Icons.add_rounded, color: Colors.white, size: 24),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 20),
+
+            // Lista de documentos
             Expanded(
               child: ListView.builder(
                 physics: const BouncingScrollPhysics(),
@@ -678,10 +707,10 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                                           children: [
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                                              decoration: BoxDecoration(color: Colors.indigo.shade50, borderRadius: BorderRadius.circular(8)),
+                                              decoration: BoxDecoration(color: primaryColor.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
                                               child: Text(
                                                 doc.category,
-                                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.indigo.shade800),
+                                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryColor),
                                               ),
                                             ),
                                             const SizedBox(width: 10),
@@ -704,14 +733,14 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                                   ),
                                   const SizedBox(width: 10),
                                   Material(
-                                    color: Colors.indigo.shade50,
+                                    color: primaryColor.withOpacity(0.08),
                                     borderRadius: BorderRadius.circular(14),
                                     child: InkWell(
                                       borderRadius: BorderRadius.circular(14),
                                       onTap: () => _shareDocument(doc),
                                       child: Padding(
                                         padding: const EdgeInsets.all(12.0),
-                                        child: Icon(Icons.share_rounded, color: Colors.indigo.shade700, size: 20),
+                                        child: Icon(Icons.share_rounded, color: primaryColor, size: 20),
                                       ),
                                     ),
                                   ),
