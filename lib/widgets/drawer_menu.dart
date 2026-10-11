@@ -5,6 +5,7 @@ import '../models/user_model.dart';
 import '../services/theme_service.dart';
 import '../theme/app_theme.dart';
 import 'diagonal_split_painter.dart';
+import '../screens/credits_screen.dart'; // <--- Importación de la pantalla de Créditos / Easter Egg
 
 class DrawerMenu extends StatelessWidget {
   final UserModel? currentUser;
@@ -131,37 +132,70 @@ class DrawerMenu extends StatelessWidget {
                 ),
               ),
 
-              // Footer elegante
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: Colors.grey.withOpacity(0.12))),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
+              // ==========================================
+              // FOOTER CON EASTER EGG INTERACTIVO (CRÉDITOS)
+              // ==========================================
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.pop(context); // Cierra el Drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CreditsScreen(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(color: Colors.grey.withOpacity(0.12)),
+                      ),
+                      color: colorScheme.primary.withOpacity(0.04), // Resaltado sutil
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(Icons.verified_rounded, size: 16, color: colorScheme.primary),
-                        const SizedBox(width: 6),
-                        Text(
-                          'UPEA Connect',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            color: colorScheme.onSurface.withOpacity(0.8),
-                          ),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.verified_rounded,
+                              size: 16,
+                              color: colorScheme.primary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'UPEA Connect',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              'v1.0.0 • 2026',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: colorScheme.onSurface.withOpacity(0.5),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.auto_awesome_rounded, // Icono sutil de Easter Egg
+                              size: 13,
+                              color: Colors.amber.shade700,
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    Text(
-                      'v1.0.0 • 2026',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: colorScheme.onSurface.withOpacity(0.4),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ],
@@ -376,7 +410,7 @@ class DrawerMenu extends StatelessWidget {
                     color: isSelected ? Colors.white.withOpacity(0.2) : colorScheme.primary,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.smart_toy_rounded,
                     color: Colors.white,
                     size: 22,

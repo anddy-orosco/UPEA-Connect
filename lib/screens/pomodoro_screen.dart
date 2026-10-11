@@ -7,6 +7,7 @@ import '../services/focus_service.dart';
 import '../widgets/growing_plant_widget.dart';
 import 'focus_store_screen.dart';
 import 'analytics_screen.dart';
+import '../widgets/pomodoro_home_widget_preview.dart'; // <--- Importación del modal de Widget
 
 class PomodoroScreen extends StatefulWidget {
   const PomodoroScreen({super.key});
@@ -435,6 +436,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
   Widget build(BuildContext context) {
     final maxTime = _isWorkMode ? _workTime : _breakTime;
     final sessionProgress = 1.0 - (_timeLeft / maxTime);
+
     final basePlantProgress = _activeSubject?.plantProgress ?? 0.0;
 
     final calculatedProgress = _isRunning
@@ -509,6 +511,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                       ),
                       Row(
                         children: [
+                          // Botón de Analítica
                           IconButton(
                             icon: const Icon(Icons.bar_chart_rounded, color: Colors.white, size: 26),
                             tooltip: 'Ver Analítica y Gráficos',
@@ -519,6 +522,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                               );
                             },
                           ),
+                          // Botón de Tienda
                           IconButton(
                             icon: const Icon(Icons.storefront_rounded, color: Colors.white, size: 26),
                             tooltip: 'Tienda de Enfoque',
@@ -530,6 +534,19 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                               _loadData();
                             },
                           ),
+                          // Botón de Home Widget (Colocado exactamente al lado de tienda y estadísticas)
+                          IconButton(
+                            icon: const Icon(Icons.widgets_rounded, color: Colors.white, size: 26),
+                            tooltip: 'Vista Previa Home Widget',
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => const PomodoroHomeWidgetPreviewModal(),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          // Contador de Monedas
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
@@ -654,7 +671,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                   ),
                 ),
 
-                // Panel del Temporizador con el MISMO diseño exacto del selector de materias
+                // Panel del Temporizador
                 Padding(
                   padding: const EdgeInsets.all(14),
                   child: ClipRRect(
