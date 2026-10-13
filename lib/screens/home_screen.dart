@@ -19,6 +19,7 @@ import 'pomodoro_screen.dart';
 import 'chat_screen.dart';
 import 'login_screen.dart';
 import 'documents_screen.dart';
+import 'maps_screen.dart'; // <--- Importación de tu módulo de mapa interactivo
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -157,6 +158,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return 'Enfoque Académico';
       case 8:
         return 'Bóveda de Documentos';
+      case 9:
+        return 'Mapa Torre Tecnológica UPEA'; // <--- Título de tu mapa interactivo
       default:
         return 'Inicio';
     }
@@ -203,6 +206,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return const PomodoroScreen();
       case 8:
         return const DocumentsScreen();
+      case 9:
+        return const BuildingMapScreen(); // <--- Renderizado de tu pantalla de mapas
       default:
         return _buildHomeContent();
     }
@@ -260,7 +265,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Menú deslizable (PageView con el nuevo orden)
+                  // Menú deslizable (PageView con el nuevo orden y mapa habilitado)
                   SizedBox(
                     height: 265,
                     child: PageView(
@@ -300,7 +305,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
 
-                        // PÁGINA 2: Documentos, Calculadora, Mapa
+                        // PÁGINA 2: Documentos, Calculadora, Mapa Habilitado
                         Column(
                           children: [
                             _buildFeatureCard(
@@ -322,11 +327,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(height: 10),
                             _buildFeatureCard(
                               title: 'Mapa UPEA',
-                              subtitle: 'Ubicación de bloques y aulas',
+                              subtitle: 'Ubicación de bloques y planos por piso',
                               icon: Icons.map_rounded,
                               color: Colors.red.shade600,
-                              index: -1,
-                              isComingSoon: true,
+                              index: 9, // <--- Activo con el índice del mapa
+                              isComingSoon: false, // <--- Habilitado
                             ),
                           ],
                         ),
@@ -386,7 +391,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 4),
           Text(
             _currentUser!.carrera.isNotEmpty
-                ? '${_currentUser!.carrera} • Semestre ${_currentUser!.semestre}'
+                ? '${_currentUser!.carrera} - Semestre ${_currentUser!.semestre}'
                 : 'Estudiante Universitario',
             style: TextStyle(
               color: colorScheme.onPrimary.withOpacity(0.85),

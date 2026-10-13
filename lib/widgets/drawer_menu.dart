@@ -108,12 +108,14 @@ class DrawerMenu extends StatelessWidget {
                       index: 5,
                       badgeColor: Colors.teal,
                     ),
+                    // MAPA UPEA HABILITADO CON COLOR ÚNICO (Rojo Carmesí)
                     _buildMenuItem(
                       context: context,
                       icon: Icons.map_rounded,
                       label: 'Mapa del Campus UPEA',
                       index: 9,
-                      isComingSoon: true,
+                      badgeColor: Colors.red.shade600, // Color diferenciado
+                      isComingSoon: false, // Habilitado
                     ),
 
                     const Padding(
@@ -153,7 +155,7 @@ class DrawerMenu extends StatelessWidget {
                       border: Border(
                         top: BorderSide(color: Colors.grey.withOpacity(0.12)),
                       ),
-                      color: colorScheme.primary.withOpacity(0.04), // Resaltado sutil
+                      color: colorScheme.primary.withOpacity(0.04),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -187,7 +189,7 @@ class DrawerMenu extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Icon(
-                              Icons.auto_awesome_rounded, // Icono sutil de Easter Egg
+                              Icons.auto_awesome_rounded,
                               size: 13,
                               color: Colors.amber.shade700,
                             ),
