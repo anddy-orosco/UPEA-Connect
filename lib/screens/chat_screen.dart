@@ -1,4 +1,6 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/colors.dart';
 import '../models/chat_message_model.dart';
 import '../services/ai_chat_service.dart';
@@ -7,7 +9,16 @@ import '../services/notes_service.dart';
 import '../models/event_model.dart';
 import '../models/note_model.dart';
 import '../models/note_page_model.dart';
+import '../widgets/chat_markdown.dart';
 import 'chat_history_screen.dart';
+
+String _dos(int n) => n.toString().padLeft(2, '0');
+
+class _Sugerencia {
+  final IconData icon;
+  final String text;
+  const _Sugerencia(this.icon, this.text);
+}
 
 /// Pantalla de chat con la IA (con historial de conversaciones).
 /// Vive en lib/screens/chat_screen.dart
@@ -19,11 +30,14 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  static const List<String> _sugerencias = [
-    'Explícame qué es una derivada',
-    'Recuérdame mañana a las 10:00 estudiar Física',
-    'Hazme un apunte sobre las leyes de Newton',
-    'Ayúdame a organizar mi semana de estudio',
+  static const List<_Sugerencia> _sugerencias = [
+    _Sugerencia(Icons.school_outlined, 'Explícame qué es una derivada'),
+    _Sugerencia(Icons.event_available_outlined,
+        'Recuérdame mañana a las 10:00 estudiar Física'),
+    _Sugerencia(Icons.note_add_outlined,
+        'Hazme un apunte sobre las leyes de Newton'),
+    _Sugerencia(Icons.calendar_month_outlined,
+        'Ayúdame a organizar mi semana de estudio'),
   ];
 
   final TextEditingController _controller = TextEditingController();
@@ -42,6 +56,26 @@ class _ChatScreenState extends State<ChatScreen> {
 
   /// Texto del último envío que falló (para el botón "Reintentar").
   String? _lastFailedText;
+
+  bool _hasText = false;
+  bool _showScrollDown = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() {
+      final has = _controller.text.trim().isNotEmpty;
+      if (has != _hasText) setState(() => _hasText = has);
+    });
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    final show = pos.maxScrollExtent - pos.pixels > 250;
+    if (show != _showScrollDown) setState(() => _showScrollDown = show);
+  }
 
   // ───────────────────────── Envío de mensajes ─────────────────────────
 
@@ -92,6 +126,19 @@ class _ChatScreenState extends State<ChatScreen> {
     _enviar(texto, reintento: true);
   }
 
+  Future<void> _copiar(String texto) async {
+    await Clipboard.setData(ClipboardData(text: texto));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Mensaje copiado'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+  }
+
   // ───────────────────────── Historial ─────────────────────────
 
   void _nuevoChat() {
@@ -99,6 +146,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _messages.clear();
       _conversationId = null;
       _lastFailedText = null;
+      _showScrollDown = false;
     });
   }
 
@@ -152,7 +200,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  // ───────────────────────── UI ─────────────────────────
+  // ───────────────────────── Utilidades de UI ─────────────────────────
 
   void _scrollToBottom({bool jump = false}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -170,10 +218,19 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  String _hora(DateTime d) {
-    String dos(int n) => n.toString().padLeft(2, '0');
-    return '${dos(d.hour)}:${dos(d.minute)}';
+  String _hora(DateTime d) => '${_dos(d.hour)}:${_dos(d.minute)}';
+
+  bool _mismoDia(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  String _etiquetaDia(DateTime d) {
+    final hoy = DateTime.now();
+    if (_mismoDia(d, hoy)) return 'Hoy';
+    if (_mismoDia(d, hoy.subtract(const Duration(days: 1)))) return 'Ayer';
+    return '${_dos(d.day)}/${_dos(d.month)}/${d.year}';
   }
+
+  // ───────────────────────── Build ─────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -182,13 +239,41 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text(
-          'Asistente UPEA',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
         elevation: 2,
+        title: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: colorScheme.onPrimary.withOpacity(0.18),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.auto_awesome,
+                  size: 18, color: colorScheme.onPrimary),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Asistente UPEA',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  'Asistente académico',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                    color: colorScheme.onPrimary.withOpacity(0.8),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: 'Historial',
@@ -220,74 +305,180 @@ class _ChatScreenState extends State<ChatScreen> {
       return _buildEmptyState(colorScheme);
     }
 
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.all(14),
-      itemCount: _messages.length + (_isLoading ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index == _messages.length) {
-          return _buildTypingIndicator(colorScheme);
-        }
-        return _buildMessageBubble(
-          _messages[index],
-          index,
-          colorScheme,
-          isLast: index == _messages.length - 1,
-        );
-      },
+    return Stack(
+      children: [
+        ListView.builder(
+          controller: _scrollController,
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+          itemCount: _messages.length + (_isLoading ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index == _messages.length) {
+              return _buildTypingIndicator(colorScheme);
+            }
+
+            final message = _messages[index];
+            final mostrarDia = index == 0 ||
+                !_mismoDia(_messages[index - 1].createdAt, message.createdAt);
+
+            return Column(
+              children: [
+                if (mostrarDia)
+                  _buildDaySeparator(_etiquetaDia(message.createdAt), colorScheme),
+                _buildMessageBubble(
+                  message,
+                  index,
+                  colorScheme,
+                  isLast: index == _messages.length - 1,
+                ),
+              ],
+            );
+          },
+        ),
+        if (_showScrollDown)
+          Positioned(
+            right: 14,
+            bottom: 10,
+            child: FloatingActionButton.small(
+              heroTag: null,
+              elevation: 3,
+              backgroundColor: Theme.of(context).cardColor,
+              foregroundColor: colorScheme.primary,
+              onPressed: () => _scrollToBottom(),
+              child: const Icon(Icons.keyboard_arrow_down),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDaySeparator(String label, ColorScheme colorScheme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: colorScheme.onSurface.withOpacity(0.07),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: colorScheme.onSurface.withOpacity(0.6),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatar(ColorScheme colorScheme, {double size = 30}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            colorScheme.primary,
+            colorScheme.primary.withOpacity(0.7),
+          ],
+        ),
+      ),
+      child: Icon(Icons.auto_awesome,
+          size: size * 0.55, color: colorScheme.onPrimary),
     );
   }
 
   Widget _buildEmptyState(ColorScheme colorScheme) {
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: colorScheme.primary.withOpacity(0.12),
-                shape: BoxShape.circle,
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildAvatar(colorScheme, size: 68),
+              const SizedBox(height: 16),
+              Text(
+                'Hola, soy tu asistente UPEA',
+                style: TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w700,
+                  color: colorScheme.onSurface,
+                ),
               ),
-              child: Icon(Icons.auto_awesome, color: colorScheme.primary, size: 30),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Hola, soy tu asistente UPEA',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: colorScheme.onSurface,
+              const SizedBox(height: 6),
+              Text(
+                'Resuelvo dudas de tus materias y puedo crear apuntes o eventos en tu calendario.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.4,
+                  color: colorScheme.onSurface.withOpacity(0.65),
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Puedo resolver dudas de tus materias, y crear apuntes o eventos en tu calendario.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.4,
-                color: colorScheme.onSurface.withOpacity(0.65),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 8,
-              runSpacing: 8,
-              children: _sugerencias
-                  .map(
-                    (s) => ActionChip(
-                      label: Text(s, style: const TextStyle(fontSize: 12)),
-                      onPressed: () => _enviar(s),
+              const SizedBox(height: 22),
+              ..._sugerencias.map(
+                (s) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Material(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(14),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () => _enviar(s.text),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: colorScheme.onSurface.withOpacity(0.1),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 34,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: colorScheme.primary.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(s.icon,
+                                  size: 18, color: colorScheme.primary),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                s.text,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios,
+                              size: 13,
+                              color: colorScheme.onSurface.withOpacity(0.35),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  )
-                  .toList(),
-            ),
-          ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -301,30 +492,37 @@ class _ChatScreenState extends State<ChatScreen> {
   }) {
     final isUser = message.isUser;
     final textColor = isUser ? colorScheme.onPrimary : colorScheme.onSurface;
+    final maxWidth = MediaQuery.of(context).size.width * (isUser ? 0.78 : 0.74);
 
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+    final bubble = GestureDetector(
+      onLongPress: () => _copiar(message.text),
       child: Container(
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.78,
-        ),
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
         decoration: BoxDecoration(
           color: isUser ? colorScheme.primary : Theme.of(context).cardColor,
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(14),
-            topRight: const Radius.circular(14),
-            bottomLeft: Radius.circular(isUser ? 14 : 4),
-            bottomRight: Radius.circular(isUser ? 4 : 14),
+            topLeft: const Radius.circular(18),
+            topRight: const Radius.circular(18),
+            bottomLeft: Radius.circular(isUser ? 18 : 4),
+            bottomRight: Radius.circular(isUser ? 4 : 18),
           ),
           border: isUser
               ? null
               : Border.all(
                   color: message.isError
                       ? Colors.red.withOpacity(0.5)
-                      : colorScheme.onSurface.withOpacity(0.12),
+                      : colorScheme.onSurface.withOpacity(0.08),
                 ),
+          boxShadow: isUser
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -348,10 +546,17 @@ class _ChatScreenState extends State<ChatScreen> {
                   ],
                 ),
               ),
-            Text(
-              message.text,
-              style: TextStyle(fontSize: 14, height: 1.4, color: textColor),
-            ),
+            if (isUser || message.isError)
+              Text(
+                message.text,
+                style: TextStyle(fontSize: 14, height: 1.4, color: textColor),
+              )
+            else
+              ChatMarkdown(
+                text: message.text,
+                style: TextStyle(fontSize: 14, height: 1.4, color: textColor),
+                codeBackground: colorScheme.onSurface.withOpacity(0.08),
+              ),
             if (message.isError &&
                 isLast &&
                 _lastFailedText != null &&
@@ -379,12 +584,28 @@ class _ChatScreenState extends State<ChatScreen> {
                 _hora(message.createdAt),
                 style: TextStyle(
                   fontSize: 10,
-                  color: textColor.withOpacity(0.6),
+                  color: textColor.withOpacity(0.55),
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment:
+            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!isUser) ...[
+            _buildAvatar(colorScheme),
+            const SizedBox(width: 8),
+          ],
+          Flexible(child: bubble),
+        ],
       ),
     );
   }
@@ -425,17 +646,92 @@ class _ChatScreenState extends State<ChatScreen> {
     return _buildActionCard(action, index, colorScheme);
   }
 
+  String _etiquetaCampo(String key) {
+    switch (key) {
+      case 'titulo':
+        return 'Título';
+      case 'fecha':
+        return 'Fecha y hora';
+      case 'tipo':
+        return 'Tipo';
+      case 'materia':
+        return 'Materia';
+      case 'contenido':
+        return 'Contenido';
+      default:
+        return key;
+    }
+  }
+
+  String _valorLegible(String key, dynamic value) {
+    final raw = '$value';
+
+    if (key == 'fecha') {
+      final d = DateTime.tryParse(raw);
+      if (d != null) {
+        return '${_dos(d.day)}/${_dos(d.month)}/${d.year}  ${_hora(d)}';
+      }
+    }
+
+    if (key == 'tipo') {
+      switch (raw) {
+        case 'EXAM':
+          return 'Examen';
+        case 'ASSIGNMENT':
+          return 'Tarea';
+        case 'CLASS':
+          return 'Clase';
+        case 'REMINDER':
+          return 'Recordatorio';
+        case 'OTHER':
+          return 'Otro';
+      }
+    }
+
+    return raw;
+  }
+
   Widget _buildActionCard(ChatAction action, int messageIndex, ColorScheme colorScheme) {
+    final esEvento = action.type == 'crear_evento';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: colorScheme.onSurface.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.primary.withOpacity(0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  esEvento ? Icons.event : Icons.sticky_note_2_outlined,
+                  size: 16,
+                  color: colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                esEvento ? 'Evento sugerido' : 'Apunte sugerido',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           // Column en vez de Row: los valores (sobre todo "contenido",
           // que puede ser un párrafo largo) no caben junto a la etiqueta.
           ...action.data.entries.map(
@@ -445,16 +741,19 @@ class _ChatScreenState extends State<ChatScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    e.key,
-                    style: TextStyle(fontSize: 12, color: colorScheme.onSurface.withOpacity(0.6)),
+                    _etiquetaCampo(e.key),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: colorScheme.onSurface.withOpacity(0.55),
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${e.value}',
+                    _valorLegible(e.key, e.value),
                     maxLines: 4,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: colorScheme.onSurface,
                     ),
@@ -476,13 +775,11 @@ class _ChatScreenState extends State<ChatScreen> {
                     foregroundColor: colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                   child: Text(
-                    action.type == 'crear_evento'
-                        ? 'Crear evento'
-                        : 'Crear apunte',
+                    esEvento ? 'Crear evento' : 'Crear apunte',
                     style: const TextStyle(fontSize: 13),
                   ),
                 ),
@@ -498,7 +795,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     side: BorderSide(color: colorScheme.onSurface.withOpacity(0.25)),
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                   child: const Text('Descartar', style: TextStyle(fontSize: 13)),
@@ -635,30 +932,28 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildTypingIndicator(ColorScheme colorScheme) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: colorScheme.onSurface.withOpacity(0.12)),
-        ),
-        child: SizedBox(
-          width: 20,
-          height: 12,
-          child: Center(
-            child: SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          _buildAvatar(colorScheme),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(18),
+                topRight: Radius.circular(18),
+                bottomRight: Radius.circular(18),
+                bottomLeft: Radius.circular(4),
               ),
+              border: Border.all(color: colorScheme.onSurface.withOpacity(0.08)),
             ),
+            child: _TypingDots(color: colorScheme.primary),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -666,55 +961,68 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildInputBar(ColorScheme colorScheme) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final fillColor = isDark ? Colors.white.withOpacity(0.07) : AppColors.grisClaro;
+    final puedeEnviar = _hasText && !_isLoading;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        border: Border(top: BorderSide(color: colorScheme.onSurface.withOpacity(0.12))),
+        border: Border(top: BorderSide(color: colorScheme.onSurface.withOpacity(0.1))),
       ),
       child: SafeArea(
         top: false,
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Expanded(
-              child: TextField(
-                controller: _controller,
-                minLines: 1,
-                maxLines: 4,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => _enviarDesdeInput(),
-                style: TextStyle(color: colorScheme.onSurface),
-                decoration: InputDecoration(
-                  hintText: 'Escribe tu pregunta...',
-                  hintStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.5)),
-                  filled: true,
-                  fillColor: fillColor,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide.none,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: fillColor,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: TextField(
+                  controller: _controller,
+                  minLines: 1,
+                  maxLines: 5,
+                  maxLength: 2000,
+                  textCapitalization: TextCapitalization.sentences,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (_) => _enviarDesdeInput(),
+                  style: TextStyle(color: colorScheme.onSurface),
+                  decoration: InputDecoration(
+                    hintText: 'Escribe tu pregunta...',
+                    hintStyle:
+                        TextStyle(color: colorScheme.onSurface.withOpacity(0.5)),
+                    counterText: '',
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 11,
+                    ),
+                    border: InputBorder.none,
                   ),
                 ),
               ),
             ),
             const SizedBox(width: 8),
-            InkWell(
-              onTap: _isLoading ? null : _enviarDesdeInput,
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: _isLoading
-                      ? colorScheme.primary.withOpacity(0.4)
-                      : colorScheme.primary,
-                  shape: BoxShape.circle,
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: puedeEnviar
+                    ? colorScheme.primary
+                    : colorScheme.primary.withOpacity(0.35),
+                shape: BoxShape.circle,
+              ),
+              child: Material(
+                color: Colors.transparent,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: puedeEnviar ? _enviarDesdeInput : null,
+                  child: Icon(Icons.arrow_upward,
+                      color: colorScheme.onPrimary, size: 22),
                 ),
-                child: Icon(Icons.arrow_upward, color: colorScheme.onPrimary, size: 20),
               ),
             ),
           ],
@@ -728,5 +1036,54 @@ class _ChatScreenState extends State<ChatScreen> {
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+}
+
+/// Tres puntitos que "saltan" mientras la IA escribe.
+class _TypingDots extends StatefulWidget {
+  final Color color;
+  const _TypingDots({required this.color});
+
+  @override
+  State<_TypingDots> createState() => _TypingDotsState();
+}
+
+class _TypingDotsState extends State<_TypingDots>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _anim = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _anim.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (context, _) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(3, (i) {
+            final t = (_anim.value - i * 0.18) % 1.0;
+            final s = math.sin(t * math.pi);
+            return Container(
+              width: 7,
+              height: 7,
+              margin: const EdgeInsets.symmetric(horizontal: 2),
+              transform: Matrix4.translationValues(0, -3 * s, 0),
+              decoration: BoxDecoration(
+                color: widget.color.withOpacity(0.35 + 0.65 * s),
+                shape: BoxShape.circle,
+              ),
+            );
+          }),
+        );
+      },
+    );
   }
 }
