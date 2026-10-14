@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/chat_message_model.dart';
 import 'api_service.dart';
+import 'connectivity_service.dart';
 
 /// Servicio del chat con IA e historial de conversaciones.
 /// Vive en lib/services/ai_chat_service.dart
@@ -24,6 +26,12 @@ class AiChatService {
         'Authorization': 'Bearer $token',
       };
 
+  static const String _offlineChatMessage =
+      'Sin conexión. El asistente necesita internet; vuelve a intentarlo cuando se restablezca.';
+
+  static const String _offlineHistoryMessage =
+      'Sin conexión. El historial del chat necesita internet.';
+
   static ChatSendResult _failure(String text) {
     return ChatSendResult(
       reply: ChatMessage(text: text, isUser: false, isError: true),
@@ -42,6 +50,10 @@ class AiChatService {
     if (token == null) {
       return _failure(
           'Tu sesión expiró. Vuelve a iniciar sesión para usar el chat.');
+    }
+
+    if (!ConnectivityService.instance.isOnline) {
+      return _failure(_offlineChatMessage);
     }
 
     try {
@@ -87,6 +99,10 @@ class AiChatService {
         title: data['title'] as String?,
       );
     } catch (e) {
+      if (ConnectivityService.isNetworkError(e) && e is! TimeoutException) {
+        ConnectivityService.instance.reportFailure();
+        return _failure(_offlineChatMessage);
+      }
       return _failure(
         'No pude conectarme con la IA. Revisa tu conexión e intenta de nuevo.',
       );
@@ -98,19 +114,27 @@ class AiChatService {
     final token = await _getToken();
     if (token == null) throw Exception('No hay sesión activa');
 
-    final response = await http.get(
-      Uri.parse('${ApiService.baseUrl}/ai/conversations'),
-      headers: _headers(token),
-    );
-    final data = jsonDecode(response.body);
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiService.baseUrl}/ai/conversations'),
+        headers: _headers(token),
+      );
+      final data = jsonDecode(response.body);
 
-    if (response.statusCode == 200) {
-      final List<dynamic> list = data['conversations'] ?? [];
-      return list
-          .map((c) => ChatConversation.fromJson(c as Map<String, dynamic>))
-          .toList();
+      if (response.statusCode == 200) {
+        final List<dynamic> list = data['conversations'] ?? [];
+        return list
+            .map((c) => ChatConversation.fromJson(c as Map<String, dynamic>))
+            .toList();
+      }
+      throw Exception(data['message'] ?? 'No se pudo cargar el historial');
+    } catch (e) {
+      if (ConnectivityService.isNetworkError(e)) {
+        ConnectivityService.instance.reportFailure();
+        throw Exception(_offlineHistoryMessage);
+      }
+      rethrow;
     }
-    throw Exception(data['message'] ?? 'No se pudo cargar el historial');
   }
 
   /// Trae todos los mensajes de una conversación, en orden.
@@ -118,29 +142,46 @@ class AiChatService {
     final token = await _getToken();
     if (token == null) throw Exception('No hay sesión activa');
 
-    final response = await http.get(
-      Uri.parse('${ApiService.baseUrl}/ai/conversations/$conversationId'),
-      headers: _headers(token),
-    );
-    final data = jsonDecode(response.body);
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiService.baseUrl}/ai/conversations/$conversationId'),
+        headers: _headers(token),
+      );
+      final data = jsonDecode(response.body);
 
-    if (response.statusCode == 200) {
-      final List<dynamic> list = data['messages'] ?? [];
-      return list
-          .map((m) => ChatMessage.fromBackend(m as Map<String, dynamic>))
-          .toList();
+      if (response.statusCode == 200) {
+        final List<dynamic> list = data['messages'] ?? [];
+        return list
+            .map((m) => ChatMessage.fromBackend(m as Map<String, dynamic>))
+            .toList();
+      }
+      throw Exception(data['message'] ?? 'No se pudo abrir la conversación');
+    } catch (e) {
+      if (ConnectivityService.isNetworkError(e)) {
+        ConnectivityService.instance.reportFailure();
+        throw Exception(_offlineHistoryMessage);
+      }
+      rethrow;
     }
-    throw Exception(data['message'] ?? 'No se pudo abrir la conversación');
   }
 
   static Future<void> deleteConversation(String conversationId) async {
     final token = await _getToken();
     if (token == null) throw Exception('No hay sesión activa');
 
-    final response = await http.delete(
-      Uri.parse('${ApiService.baseUrl}/ai/conversations/$conversationId'),
-      headers: _headers(token),
-    );
+    late final http.Response response;
+    try {
+      response = await http.delete(
+        Uri.parse('${ApiService.baseUrl}/ai/conversations/$conversationId'),
+        headers: _headers(token),
+      );
+    } catch (e) {
+      if (ConnectivityService.isNetworkError(e)) {
+        ConnectivityService.instance.reportFailure();
+        throw Exception(_offlineHistoryMessage);
+      }
+      rethrow;
+    }
 
     if (response.statusCode == 204 || response.statusCode == 200) return;
 

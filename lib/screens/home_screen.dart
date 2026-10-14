@@ -9,6 +9,7 @@ import '../services/theme_service.dart';
 import '../models/user_model.dart';
 import '../widgets/diagonal_split_painter.dart';
 import '../widgets/drawer_menu.dart';
+import '../widgets/offline_banner.dart';
 
 import 'profile_screen.dart';
 import 'account_switcher.dart';
@@ -134,7 +135,13 @@ class _HomeScreenState extends State<HomeScreen> {
         onLogout: _cerrarSesion,
         selectedIndex: _selectedIndex,
       ),
-      body: _buildBody(),
+      body: Column(
+        children: [
+          // Aviso de "Sin conexión" / "Conexión restablecida" en todas las pantallas
+          const OfflineBanner(),
+          Expanded(child: _buildBody()),
+        ],
+      ),
     );
   }
 

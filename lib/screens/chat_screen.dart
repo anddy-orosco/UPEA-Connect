@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../services/connectivity_service.dart';
 import '../theme/colors.dart';
 import '../models/chat_message_model.dart';
 import '../services/ai_chat_service.dart';
@@ -961,7 +963,8 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildInputBar(ColorScheme colorScheme) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final fillColor = isDark ? Colors.white.withOpacity(0.07) : AppColors.grisClaro;
-    final puedeEnviar = _hasText && !_isLoading;
+    final online = context.watch<ConnectivityService>().isOnline;
+    final puedeEnviar = _hasText && !_isLoading && online;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
@@ -990,7 +993,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   onSubmitted: (_) => _enviarDesdeInput(),
                   style: TextStyle(color: colorScheme.onSurface),
                   decoration: InputDecoration(
-                    hintText: 'Escribe tu pregunta...',
+                    hintText: online
+                        ? 'Escribe tu pregunta...'
+                        : 'Sin conexión: el asistente necesita internet',
                     hintStyle:
                         TextStyle(color: colorScheme.onSurface.withOpacity(0.5)),
                     counterText: '',
