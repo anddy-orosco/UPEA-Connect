@@ -4,40 +4,63 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/chat_message_model.dart';
 import 'api_service.dart';
 
-/// Servicio del chat con IA.
+/// Servicio del chat con IA e historial de conversaciones.
 /// Vive en lib/services/ai_chat_service.dart
 ///
-/// Ya conectado al backend real (/api/ai/chat -> Gemini).
-/// Reemplaza la versión mock anterior; la firma de sendMessage() se
-/// mantiene igual, así que chat_screen.dart no necesita cambios.
+/// Endpoints del backend:
+///   POST   /ai/chat                                   (envía mensaje; crea conversación si no hay id)
+///   GET    /ai/conversations                          (lista)
+///   GET    /ai/conversations/:id                      (mensajes)
+///   DELETE /ai/conversations/:id
+///   PATCH  /ai/conversations/:id/messages/:messageId  (estado de la tarjeta)
 class AiChatService {
-  static Future<ChatMessage> sendMessage(String userText) async {
+  static Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    return prefs.getString('auth_token');
+  }
+
+  static Map<String, String> _headers(String token) => {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+
+  static ChatSendResult _failure(String text) {
+    return ChatSendResult(
+      reply: ChatMessage(text: text, isUser: false, isError: true),
+      failed: true,
+    );
+  }
+
+  /// Envía un mensaje. Si [conversationId] es null, el backend crea una
+  /// conversación nueva y devuelve su id y título.
+  static Future<ChatSendResult> sendMessage(
+    String userText, {
+    String? conversationId,
+  }) async {
+    final token = await _getToken();
 
     if (token == null) {
-      return ChatMessage(
-        text: 'Tu sesión expiró. Vuelve a iniciar sesión para usar el chat.',
-        isUser: false,
-      );
+      return _failure(
+          'Tu sesión expiró. Vuelve a iniciar sesión para usar el chat.');
     }
 
     try {
-      final response = await http.post(
-        Uri.parse('${ApiService.baseUrl}/ai/chat'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({'message': userText}),
-      );
+      final response = await http
+          .post(
+            Uri.parse('${ApiService.baseUrl}/ai/chat'),
+            headers: _headers(token),
+            body: jsonEncode({
+              'message': userText,
+              if (conversationId != null) 'conversationId': conversationId,
+            }),
+          )
+          .timeout(const Duration(seconds: 45));
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode != 200) {
-        return ChatMessage(
-          text: data['message'] ?? 'El asistente no pudo responder. Intenta de nuevo.',
-          isUser: false,
+        return _failure(
+          data['message'] ?? 'El asistente no pudo responder. Intenta de nuevo.',
         );
       }
 
@@ -52,12 +75,101 @@ class AiChatService {
         );
       }
 
-      return ChatMessage(text: reply, isUser: false, action: action);
-    } catch (e) {
-      return ChatMessage(
-        text: 'No pude conectarme con la IA. Revisa tu conexión e intenta de nuevo.',
-        isUser: false,
+      return ChatSendResult(
+        reply: ChatMessage(
+          id: data['assistantMessageId'] as String?,
+          text: reply,
+          isUser: false,
+          action: action,
+          actionStatus: action != null ? 'PENDING' : null,
+        ),
+        conversationId: data['conversationId'] as String?,
+        title: data['title'] as String?,
       );
+    } catch (e) {
+      return _failure(
+        'No pude conectarme con la IA. Revisa tu conexión e intenta de nuevo.',
+      );
+    }
+  }
+
+  /// Lista las conversaciones del usuario (la más reciente primero).
+  static Future<List<ChatConversation>> listConversations() async {
+    final token = await _getToken();
+    if (token == null) throw Exception('No hay sesión activa');
+
+    final response = await http.get(
+      Uri.parse('${ApiService.baseUrl}/ai/conversations'),
+      headers: _headers(token),
+    );
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> list = data['conversations'] ?? [];
+      return list
+          .map((c) => ChatConversation.fromJson(c as Map<String, dynamic>))
+          .toList();
+    }
+    throw Exception(data['message'] ?? 'No se pudo cargar el historial');
+  }
+
+  /// Trae todos los mensajes de una conversación, en orden.
+  static Future<List<ChatMessage>> getMessages(String conversationId) async {
+    final token = await _getToken();
+    if (token == null) throw Exception('No hay sesión activa');
+
+    final response = await http.get(
+      Uri.parse('${ApiService.baseUrl}/ai/conversations/$conversationId'),
+      headers: _headers(token),
+    );
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> list = data['messages'] ?? [];
+      return list
+          .map((m) => ChatMessage.fromBackend(m as Map<String, dynamic>))
+          .toList();
+    }
+    throw Exception(data['message'] ?? 'No se pudo abrir la conversación');
+  }
+
+  static Future<void> deleteConversation(String conversationId) async {
+    final token = await _getToken();
+    if (token == null) throw Exception('No hay sesión activa');
+
+    final response = await http.delete(
+      Uri.parse('${ApiService.baseUrl}/ai/conversations/$conversationId'),
+      headers: _headers(token),
+    );
+
+    if (response.statusCode == 204 || response.statusCode == 200) return;
+
+    String message = 'No se pudo borrar la conversación';
+    try {
+      message = jsonDecode(response.body)['message'] ?? message;
+    } catch (_) {}
+    throw Exception(message);
+  }
+
+  /// Marca la tarjeta de acción como 'DONE' o 'DISCARDED' en el backend.
+  /// Es un guardado "de cortesía": si falla, no se interrumpe al usuario.
+  static Future<void> markActionStatus({
+    required String conversationId,
+    required String messageId,
+    required String status,
+  }) async {
+    try {
+      final token = await _getToken();
+      if (token == null) return;
+
+      await http.patch(
+        Uri.parse(
+            '${ApiService.baseUrl}/ai/conversations/$conversationId/messages/$messageId'),
+        headers: _headers(token),
+        body: jsonEncode({'actionStatus': status}),
+      );
+    } catch (_) {
+      // Silencioso a propósito.
     }
   }
 }
