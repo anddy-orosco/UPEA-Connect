@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +9,7 @@ import '../models/user_model.dart';
 import '../widgets/diagonal_split_painter.dart';
 import '../widgets/drawer_menu.dart';
 import '../widgets/offline_banner.dart';
+import '../widgets/user_photo.dart';
 
 import 'profile_screen.dart';
 import 'account_switcher.dart';
@@ -89,6 +89,13 @@ class _HomeScreenState extends State<HomeScreen> {
       _selectedIndex = index;
     });
     Navigator.pop(context);
+  }
+
+  // Se llama al guardar el perfil (no es un cambio de cuenta).
+  void _onProfileUpdated(UserModel updatedUser) {
+    setState(() {
+      _currentUser = updatedUser;
+    });
   }
 
   void _updateUser(UserModel updatedUser) {
@@ -189,7 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 1:
         return ProfileScreen(
           user: _currentUser!,
-          onUserUpdated: _updateUser,
+          onUserUpdated: _onProfileUpdated,
         );
       case 2:
         return AccountSwitcher(
@@ -382,7 +389,10 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ClipOval(
               child: (_currentUser!.fotoPath != null &&
                   _currentUser!.fotoPath!.isNotEmpty)
-                  ? Image.file(File(_currentUser!.fotoPath!), fit: BoxFit.cover)
+                  ? UserPhoto(
+                      path: _currentUser!.fotoPath!,
+                      fallback: Icon(Icons.person, size: 50, color: colorScheme.primary),
+                    )
                   : Icon(Icons.person, size: 50, color: colorScheme.primary),
             ),
           ),

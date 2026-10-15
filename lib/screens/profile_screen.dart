@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import '../theme/colors.dart';
 import '../models/user_model.dart';
+import '../services/api_service.dart';
+import '../widgets/user_photo.dart';
 
 class ProfileScreen extends StatefulWidget {
   final UserModel user;
@@ -26,6 +28,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late TextEditingController _semestreController;
   String? _fotoPath;
   bool _isEditing = false;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -53,37 +56,103 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _guardarCambios() async {
-    final prefs = await SharedPreferences.getInstance();
+  String _mimeDe(String nombreArchivo) {
+    final ext = nombreArchivo.split('.').last.toLowerCase();
+    if (ext == 'png') return 'image/png';
+    if (ext == 'webp') return 'image/webp';
+    return 'image/jpeg';
+  }
 
-    // Actualizar SharedPreferences
-    await prefs.setString('user_nombre', _nombreController.text);
-    await prefs.setString('user_email', _emailController.text);
-    await prefs.setString('user_carrera', _carreraController.text);
-    await prefs.setString('user_semestre', _semestreController.text);
-
-    // Crear usuario actualizado
-    final updatedUser = UserModel(
-      nombre: _nombreController.text,
-      email: _emailController.text,
-      carrera: _carreraController.text,
-      semestre: _semestreController.text,
-      fotoPath: _fotoPath,
-    );
-
-    // Notificar al home que los datos cambiaron
-    widget.onUserUpdated(updatedUser);
-
-    setState(() {
-      _isEditing = false;
-    });
-
+  void _aviso(String texto, {bool error = false}) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Perfil actualizado correctamente'),
-        backgroundColor: AppColors.verdeExito,
+      SnackBar(
+        content: Text(texto),
+        backgroundColor: error ? AppColors.rojoAlerta : AppColors.verdeExito,
       ),
     );
+  }
+
+  Future<void> _guardarCambios() async {
+    final nombre = _nombreController.text.trim();
+    final carrera = _carreraController.text.trim();
+    final semestre = _semestreController.text.trim();
+
+    // Mismas reglas que valida el servidor.
+    if (nombre.length < 2 || carrera.length < 2 || semestre.isEmpty) {
+      _aviso(
+        'Revisa los datos: nombre y carrera con al menos 2 letras, y el semestre no puede estar vacío.',
+        error: true,
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      // 1) Si se eligió una foto nueva (ruta local), se sube primero.
+      String? fotoUrlNueva;
+      final fotoCambio = _fotoPath != null &&
+          _fotoPath!.isNotEmpty &&
+          _fotoPath != widget.user.fotoPath;
+
+      if (fotoCambio && !_fotoPath!.startsWith('http')) {
+        final bytes = await File(_fotoPath!).readAsBytes();
+        final nombreArchivo = _fotoPath!.split(RegExp(r'[\\/]')).last;
+        fotoUrlNueva = await ApiService.uploadImage(
+          bytes,
+          nombreArchivo,
+          mimeType: _mimeDe(nombreArchivo),
+        );
+      }
+
+      // 2) Se guarda el perfil en el servidor.
+      final data = await ApiService.updateProfile(
+        nombre: nombre,
+        carrera: carrera,
+        semestre: semestre,
+        fotoUrl: fotoUrlNueva,
+      );
+      final u = (data['user'] ?? data) as Map<String, dynamic>;
+
+      final nombreOk = (u['nombre'] as String?) ?? nombre;
+      final carreraOk = (u['carrera'] as String?) ?? carrera;
+      final semestreOk = (u['semestre'] as String?) ?? semestre;
+      final fotoOk = (u['fotoUrl'] as String?) ?? _fotoPath;
+
+      // 3) Solo si el servidor aceptó, se actualiza lo guardado en el celular.
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_nombre', nombreOk);
+      await prefs.setString('user_carrera', carreraOk);
+      await prefs.setString('user_semestre', semestreOk);
+      if (fotoOk != null && fotoOk.isNotEmpty) {
+        await prefs.setString('user_foto_path', fotoOk);
+      }
+
+      final updatedUser = UserModel(
+        nombre: nombreOk,
+        email: widget.user.email,
+        carrera: carreraOk,
+        semestre: semestreOk,
+        fotoPath: fotoOk,
+      );
+
+      // Notificar al home que los datos cambiaron
+      widget.onUserUpdated(updatedUser);
+
+      if (!mounted) return;
+      setState(() {
+        _fotoPath = fotoOk;
+        _isEditing = false;
+        _isSaving = false;
+      });
+      _aviso('Perfil actualizado correctamente');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      final motivo = e.toString().replaceFirst('Exception: ', '');
+      _aviso('No se pudo guardar: $motivo', error: true);
+    }
   }
 
   @override
@@ -100,7 +169,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           // Foto de perfil
           GestureDetector(
-            onTap: _isEditing ? _seleccionarFoto : null,
+            onTap: (_isEditing && !_isSaving) ? _seleccionarFoto : null,
             child: Stack(
               children: [
                 Container(
@@ -121,10 +190,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                   child: ClipOval(
-                    child: _fotoPath != null
-                        ? Image.file(
-                      File(_fotoPath!),
-                      fit: BoxFit.cover,
+                    child: (_fotoPath != null && _fotoPath!.isNotEmpty)
+                        ? UserPhoto(
+                      path: _fotoPath!,
+                      fallback: Container(
+                        color: placeholderBg,
+                        child: Icon(
+                          Icons.person,
+                          size: 60,
+                          color: colorScheme.primary,
+                        ),
+                      ),
                     )
                         : Container(
                       color: placeholderBg,
@@ -189,7 +265,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     value: _emailController.text,
                     icon: Icons.email,
                     controller: _emailController,
-                    isEditing: _isEditing,
+                    isEditing: false, // el correo no se puede cambiar
                     colorScheme: colorScheme,
                     placeholderBg: placeholderBg,
                   ),
@@ -248,9 +324,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               if (_isEditing) ...[
                 ElevatedButton.icon(
-                  onPressed: _guardarCambios,
-                  icon: const Icon(Icons.save),
-                  label: const Text('Guardar'),
+                  onPressed: _isSaving ? null : _guardarCambios,
+                  icon: _isSaving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.save),
+                  label: Text(_isSaving ? 'Guardando...' : 'Guardar'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.verdeExito,
                     foregroundColor: AppColors.blanco,
@@ -265,7 +347,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(width: 10),
                 OutlinedButton.icon(
-                  onPressed: () {
+                  onPressed: _isSaving ? null : () {
                     setState(() {
                       _isEditing = false;
                       _nombreController.text = widget.user.nombre;
