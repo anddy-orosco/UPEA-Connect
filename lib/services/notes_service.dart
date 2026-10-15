@@ -84,11 +84,13 @@ class NotesService {
     );
   }
 
-  static Map<String, dynamic> _noteToBackendJson(NoteModel note) {
+    static Map<String, dynamic> _noteToBackendJson(NoteModel note) {
+    final course = note.courseName?.trim() ?? '';
     return {
       'title': note.title,
       'content': note.content,
-      'courseName': note.courseName,
+      // El backend acepta texto o que el campo no venga, pero rechaza null.
+      if (course.isNotEmpty) 'courseName': course,
       'pages': note.pages
           .map((p) => {
                 'pageIndex': p.pageIndex,
