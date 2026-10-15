@@ -16,6 +16,9 @@ class ChatMessage {
   /// true si es un mensaje de error local (sin conexión, Gemini caído, etc.).
   final bool isError;
 
+  /// Código del error del backend (ej. 'AI_QUOTA', 'AI_BUSY'), si lo hay.
+  final String? errorCode;
+
   ChatMessage({
     this.id,
     required this.text,
@@ -24,6 +27,7 @@ class ChatMessage {
     this.actionStatus,
     DateTime? createdAt,
     this.isError = false,
+    this.errorCode,
   }) : createdAt = createdAt ?? DateTime.now();
 
   ChatMessage copyWith({
@@ -38,6 +42,7 @@ class ChatMessage {
       actionStatus: actionStatus ?? this.actionStatus,
       createdAt: createdAt,
       isError: isError,
+      errorCode: errorCode,
     );
   }
 
@@ -104,6 +109,29 @@ class ChatConversation {
       updatedAt:
           DateTime.tryParse(json['updatedAt'] as String? ?? '')?.toLocal() ??
               DateTime.now(),
+    );
+  }
+}
+
+/// Modelo de IA que el usuario puede elegir (id para el backend, nombre y
+/// descripción corta para mostrar en el selector).
+class ChatModelOption {
+  final String id;
+  final String label;
+  final String? description;
+
+  const ChatModelOption({
+    required this.id,
+    required this.label,
+    this.description,
+  });
+
+  factory ChatModelOption.fromJson(Map<String, dynamic> json) {
+    final desc = json['description'] as String?;
+    return ChatModelOption(
+      id: json['id'] as String,
+      label: json['label'] as String? ?? json['id'] as String,
+      description: (desc == null || desc.trim().isEmpty) ? null : desc.trim(),
     );
   }
 }

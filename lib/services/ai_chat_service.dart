@@ -32,11 +32,58 @@ class AiChatService {
   static const String _offlineHistoryMessage =
       'Sin conexión. El historial del chat necesita internet.';
 
-  static ChatSendResult _failure(String text) {
+  static ChatSendResult _failure(String text, {String? code}) {
     return ChatSendResult(
-      reply: ChatMessage(text: text, isUser: false, isError: true),
+      reply: ChatMessage(
+        text: text,
+        isUser: false,
+        isError: true,
+        errorCode: code,
+      ),
       failed: true,
     );
+  }
+
+  // ───────────── Selección de modelo de IA ─────────────
+
+  /// Valor que significa "que el servidor elija / pruebe todos en orden".
+  static const String autoModel = 'auto';
+  static const String _modelPrefKey = 'ai_model';
+
+  static Future<String> getSelectedModel() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_modelPrefKey) ?? autoModel;
+  }
+
+  static Future<void> setSelectedModel(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_modelPrefKey, id);
+  }
+
+  /// Modelos que ofrece el servidor. Si no se puede consultar (sin internet),
+  /// devuelve una lista vacía y la app solo ofrece "Automático".
+  static Future<List<ChatModelOption>> fetchModels() async {
+    try {
+      final token = await _getToken();
+      if (token == null) return [];
+
+      final response = await http
+          .get(
+            Uri.parse('${ApiService.baseUrl}/ai/models'),
+            headers: _headers(token),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode != 200) return [];
+
+      final data = jsonDecode(response.body);
+      final List<dynamic> list = data['models'] ?? [];
+      return list
+          .map((m) => ChatModelOption.fromJson(m as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   /// Envía un mensaje. Si [conversationId] es null, el backend crea una
@@ -56,6 +103,8 @@ class AiChatService {
       return _failure(_offlineChatMessage);
     }
 
+    final selectedModel = await getSelectedModel();
+
     try {
       final response = await http
           .post(
@@ -64,6 +113,7 @@ class AiChatService {
             body: jsonEncode({
               'message': userText,
               if (conversationId != null) 'conversationId': conversationId,
+              if (selectedModel != autoModel) 'model': selectedModel,
             }),
           )
           .timeout(const Duration(seconds: 45));
@@ -71,8 +121,17 @@ class AiChatService {
       final data = jsonDecode(response.body);
 
       if (response.statusCode != 200) {
+        final code = data['error']?.toString();
+
+        // El modelo guardado ya no existe en el servidor: se vuelve a Automático.
+        if (code == 'INVALID_MODEL') {
+          await setSelectedModel(autoModel);
+        }
+
         return _failure(
-          data['message'] ?? 'El asistente no pudo responder. Intenta de nuevo.',
+          data['message']?.toString() ??
+              'El asistente no pudo responder. Intenta de nuevo.',
+          code: code,
         );
       }
 
