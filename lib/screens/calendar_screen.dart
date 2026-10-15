@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../models/event_model.dart';
 import '../services/calendar_service.dart';
+import '../services/connectivity_service.dart';
 import '../widgets/event_card.dart';
 import '../widgets/add_event_modal.dart';
 import '../widgets/countdown_card.dart';
@@ -21,11 +22,43 @@ class _CalendarScreenState extends State<CalendarScreen> {
   bool _isLoading = true;
   String? _loadError;
 
+  bool _wasOnline = ConnectivityService.instance.isOnline;
+
   @override
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
     _loadInitialData();
+    ConnectivityService.instance.addListener(_onConnectivityChanged);
+  }
+
+  @override
+  void dispose() {
+    ConnectivityService.instance.removeListener(_onConnectivityChanged);
+    super.dispose();
+  }
+
+  // Cuando vuelve internet, se refrescan los eventos sin mostrar spinner.
+  void _onConnectivityChanged() {
+    final online = ConnectivityService.instance.isOnline;
+    if (online && !_wasOnline) _refreshSilently();
+    _wasOnline = online;
+  }
+
+  Future<void> _refreshSilently() async {
+    try {
+      await _calendarService.loadEvents();
+      if (mounted) setState(() {});
+    } catch (_) {
+      // Si falla, se queda lo que ya se estaba mostrando.
+    }
+  }
+
+  // Quita el prefijo "Exception: " y no repite el mensaje de "sin conexión".
+  String _errorText(String prefix, Object e) {
+    final msg = e.toString().replaceFirst('Exception: ', '');
+    if (msg == ConnectivityService.offlineWriteMessage) return msg;
+    return '$prefix: $msg';
   }
 
   // Carga inicial de eventos desde el backend. Antes, si loadEvents()
@@ -49,7 +82,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _loadError = 'No se pudieron cargar los eventos: $e';
+          _loadError = _errorText('No se pudieron cargar los eventos', e);
         });
       }
     }
@@ -96,7 +129,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             await _calendarService.addEvent(newEvent);
             if (mounted) setState(() {});
           } catch (e) {
-            _showError('No se pudo crear el evento: $e');
+            _showError(_errorText('No se pudo crear el evento', e));
           }
         },
       ),
@@ -108,7 +141,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       await _calendarService.toggleEventCompletion(event.id);
       if (mounted) setState(() {});
     } catch (e) {
-      _showError('No se pudo actualizar el evento: $e');
+      _showError(_errorText('No se pudo actualizar el evento', e));
     }
   }
 
@@ -117,7 +150,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       await _calendarService.deleteEvent(event.id);
       if (mounted) setState(() {});
     } catch (e) {
-      _showError('No se pudo eliminar el evento: $e');
+      _showError(_errorText('No se pudo eliminar el evento', e));
     }
   }
 

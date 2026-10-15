@@ -7,6 +7,7 @@ import '../theme/colors.dart';
 import '../models/note_model.dart';
 import '../models/note_page_model.dart';
 import '../services/notes_service.dart';
+import '../services/connectivity_service.dart';
 import '../services/api_service.dart';
 import '../services/pptx_export_service.dart';
 import '../widgets/rich_text_toolbar.dart';
@@ -24,23 +25,68 @@ class _NotesScreenState extends State<NotesScreen> {
   bool _isLoading = true;
   String _searchQuery = '';
 
+  String? _loadError;
+  bool _wasOnline = ConnectivityService.instance.isOnline;
+
   @override
   void initState() {
     super.initState();
     _loadNotes();
+    ConnectivityService.instance.addListener(_onConnectivityChanged);
   }
 
-  Future<void> _loadNotes() async {
-    setState(() {
-      _isLoading = true;
-    });
+  @override
+  void dispose() {
+    ConnectivityService.instance.removeListener(_onConnectivityChanged);
+    super.dispose();
+  }
 
-    final notes = await NotesService.getNotes();
+  // Cuando vuelve internet, se refrescan las notas sin mostrar spinner.
+  void _onConnectivityChanged() {
+    final online = ConnectivityService.instance.isOnline;
+    if (online && !_wasOnline) _loadNotes(silent: true);
+    _wasOnline = online;
+  }
 
-    setState(() {
-      _notes = notes;
-      _isLoading = false;
-    });
+  // Quita el prefijo "Exception: " y no repite el mensaje de "sin conexión".
+  String _errorText(String prefix, Object e) {
+    final msg = e.toString().replaceFirst('Exception: ', '');
+    if (msg == ConnectivityService.offlineWriteMessage) return msg;
+    return '$prefix: $msg';
+  }
+
+  void _showOfflineMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(ConnectivityService.offlineWriteMessage),
+        backgroundColor: AppColors.rojoAlerta,
+      ),
+    );
+  }
+
+  Future<void> _loadNotes({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _loadError = null;
+      });
+    }
+
+    try {
+      final notes = await NotesService.getNotes();
+      if (!mounted) return;
+      setState(() {
+        _notes = notes;
+        _isLoading = false;
+        _loadError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        if (!silent) _loadError = _errorText('No se pudieron cargar las notas', e);
+      });
+    }
   }
 
   List<NoteModel> get _filteredNotes {
@@ -57,6 +103,12 @@ class _NotesScreenState extends State<NotesScreen> {
   // antes de abrir el editor sobre una nota existente hay que pedir la nota
   // completa con GET /notes/:id. Si esa carga falla, no se abre el editor.
   Future<void> _createOrEditNote({NoteModel? existingNote}) async {
+    // Crear una nota nueva necesita internet (por ahora).
+    if (existingNote == null && !ConnectivityService.instance.isOnline) {
+      _showOfflineMessage();
+      return;
+    }
+
     NoteModel? noteToEdit = existingNote;
 
     if (existingNote != null) {
@@ -78,7 +130,7 @@ class _NotesScreenState extends State<NotesScreen> {
           Navigator.of(context, rootNavigator: true).pop(); // cierra el loading
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('No se pudo cargar la nota: $e'),
+              content: Text(_errorText('No se pudo cargar la nota', e)),
               backgroundColor: AppColors.rojoAlerta,
             ),
           );
@@ -105,6 +157,11 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   Future<void> _deleteNote(String id) async {
+    if (!ConnectivityService.instance.isOnline) {
+      _showOfflineMessage();
+      return;
+    }
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -131,16 +188,27 @@ class _NotesScreenState extends State<NotesScreen> {
     );
 
     if (confirm == true) {
-      await NotesService.deleteNote(id);
-      _loadNotes();
+      try {
+        await NotesService.deleteNote(id);
+        _loadNotes();
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Nota eliminada'),
-            backgroundColor: AppColors.rojoAlerta,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Nota eliminada'),
+              backgroundColor: AppColors.rojoAlerta,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_errorText('No se pudo eliminar la nota', e)),
+              backgroundColor: AppColors.rojoAlerta,
+            ),
+          );
+        }
       }
     }
   }
@@ -192,6 +260,8 @@ class _NotesScreenState extends State<NotesScreen> {
                 valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
               ),
             )
+                : _loadError != null
+                ? _buildLoadErrorState(colorScheme)
                 : _filteredNotes.isEmpty
                 ? _buildEmptyState(colorScheme)
                 : ListView.builder(
@@ -209,6 +279,40 @@ class _NotesScreenState extends State<NotesScreen> {
         onPressed: () => _createOrEditNote(),
         backgroundColor: colorScheme.primary,
         child: Icon(Icons.add, color: colorScheme.onPrimary),
+      ),
+    );
+  }
+
+  Widget _buildLoadErrorState(ColorScheme colorScheme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.cloud_off,
+                size: 60, color: colorScheme.onSurface.withOpacity(0.3)),
+            const SizedBox(height: 16),
+            Text(
+              _loadError!,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: colorScheme.onSurface.withOpacity(0.6),
+                fontSize: 15,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _loadNotes,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reintentar'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -447,6 +551,16 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   // NotesService.saveNote. Usar bytes (XFile.readAsBytes) en vez de un
   // dart:io File hace que esto funcione igual en celular y en web.
   Future<void> _addFloatingImage() async {
+    if (!ConnectivityService.instance.isOnline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sin conexión: las imágenes necesitan internet para subirse.'),
+          backgroundColor: AppColors.rojoAlerta,
+        ),
+      );
+      return;
+    }
+
     final picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
@@ -576,6 +690,17 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   Future<void> _saveNote() async {
     _syncPageControllers();
 
+    // Guardar necesita internet (por ahora). Lo escrito se queda en pantalla.
+    if (!ConnectivityService.instance.isOnline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(ConnectivityService.offlineWriteMessage),
+          backgroundColor: AppColors.rojoAlerta,
+        ),
+      );
+      return;
+    }
+
     final fullContent = _pages.map((p) => p.textContent).join('\n---\n');
 
     if (_titleController.text.isEmpty) {
@@ -662,7 +787,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al guardar: $e'),
+            content: Text('Error al guardar: ${e.toString().replaceFirst('Exception: ', '')}'),
             backgroundColor: AppColors.rojoAlerta,
           ),
         );

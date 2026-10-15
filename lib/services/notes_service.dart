@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
+import 'connectivity_service.dart';
+import 'local_cache.dart';
 import '../models/note_model.dart';
 import '../models/note_page_model.dart';
 
@@ -16,6 +19,12 @@ class NotesService {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       };
+
+  static void _requireOnline() {
+    if (!ConnectivityService.instance.isOnline) {
+      throw Exception(ConnectivityService.offlineWriteMessage);
+    }
+  }
 
   static Map<String, dynamic> _floatingElementToBackendJson(
       FloatingElement el) {
@@ -75,11 +84,13 @@ class NotesService {
     );
   }
 
-  static Map<String, dynamic> _noteToBackendJson(NoteModel note) {
+    static Map<String, dynamic> _noteToBackendJson(NoteModel note) {
+    final course = note.courseName?.trim() ?? '';
     return {
       'title': note.title,
       'content': note.content,
-      'courseName': note.courseName,
+      // El backend acepta texto o que el campo no venga, pero rechaza null.
+      if (course.isNotEmpty) 'courseName': course,
       'pages': note.pages
           .map((p) => {
                 'pageIndex': p.pageIndex,
@@ -92,46 +103,119 @@ class NotesService {
     };
   }
 
+  // Convierte un fallo de red en un mensaje claro para el usuario.
+  static Never _throwOffline() {
+    ConnectivityService.instance.reportFailure();
+    throw Exception(ConnectivityService.offlineWriteMessage);
+  }
+
+  // Descarga en segundo plano cada nota completa (con páginas y elementos
+  // flotantes) para poder abrirla sin internet. Solo baja las que cambiaron.
+  static Future<void> _prefetchFullNotes(
+      List<dynamic> notesJson, String token) async {
+    for (final raw in notesJson.take(60)) {
+      final n = Map<String, dynamic>.from(raw as Map);
+      final id = n['id']?.toString();
+      if (id == null) continue;
+
+      final cached = await LocalCache.readJson('note_$id');
+      if (cached is Map && cached['updatedAt'] == n['updatedAt']) continue;
+
+      try {
+        final res = await http
+            .get(Uri.parse('${ApiService.baseUrl}/notes/$id'),
+                headers: _headers(token))
+            .timeout(const Duration(seconds: 15));
+        if (res.statusCode == 200) {
+          await LocalCache.saveJson('note_$id', jsonDecode(res.body));
+        }
+      } catch (_) {
+        return; // si hay problemas de red, se deja para la próxima vez
+      }
+    }
+  }
+
   // Devuelve la lista de notas (sin páginas/elementos flotantes,
   // el backend no los incluye en el listado por rendimiento).
+  // Sin internet, devuelve las que quedaron guardadas en el teléfono.
   static Future<List<NoteModel>> getNotes() async {
     final token = await _getToken();
     if (token == null) return [];
 
-    final response = await http.get(
-      Uri.parse('${ApiService.baseUrl}/notes'),
-      headers: _headers(token),
-    );
+    try {
+      // limit=100 (el máximo del backend): sin esto solo llegaban 20 notas.
+      final response = await http
+          .get(
+            Uri.parse('${ApiService.baseUrl}/notes?limit=100'),
+            headers: _headers(token),
+          )
+          .timeout(const Duration(seconds: 15));
 
-    final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body);
 
-    if (response.statusCode == 200) {
-      final List<dynamic> notesJson = data['notes'];
-      return notesJson.map((n) => _noteFromBackendJson(n)).toList();
-    } else {
+      if (response.statusCode == 200) {
+        final List<dynamic> notesJson = data['notes'];
+        ConnectivityService.instance.reportSuccess();
+        await LocalCache.saveJson('notes', notesJson);
+        unawaited(_prefetchFullNotes(notesJson, token));
+        return notesJson
+            .map((n) => _noteFromBackendJson(Map<String, dynamic>.from(n as Map)))
+            .toList();
+      } else {
+        throw Exception(
+            data['message'] ?? data['error'] ?? 'Error al cargar notas');
+      }
+    } catch (e) {
+      if (!ConnectivityService.isNetworkError(e)) rethrow;
+
+      ConnectivityService.instance.reportFailure();
+      final cached = await LocalCache.readJson('notes');
+      if (cached is List) {
+        return cached
+            .map((n) => _noteFromBackendJson(Map<String, dynamic>.from(n as Map)))
+            .toList();
+      }
       throw Exception(
-          data['message'] ?? data['error'] ?? 'Error al cargar notas');
+          'Sin conexión y todavía no hay notas guardadas en este dispositivo.');
     }
   }
 
   // Trae una nota específica completa, con todas sus páginas y
   // elementos flotantes (necesario antes de abrir el editor).
+  // Sin internet, usa la copia guardada (si la nota ya se abrió o se
+  // descargó antes con conexión).
   static Future<NoteModel> getNoteById(String id) async {
     final token = await _getToken();
     if (token == null) throw Exception('No hay sesión activa');
 
-    final response = await http.get(
-      Uri.parse('${ApiService.baseUrl}/notes/$id'),
-      headers: _headers(token),
-    );
+    try {
+      final response = await http
+          .get(
+            Uri.parse('${ApiService.baseUrl}/notes/$id'),
+            headers: _headers(token),
+          )
+          .timeout(const Duration(seconds: 15));
 
-    final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body);
 
-    if (response.statusCode == 200) {
-      return _noteFromBackendJson(data);
-    } else {
+      if (response.statusCode == 200) {
+        ConnectivityService.instance.reportSuccess();
+        await LocalCache.saveJson('note_$id', data);
+        return _noteFromBackendJson(data);
+      } else {
+        throw Exception(
+            data['message'] ?? data['error'] ?? 'Error al cargar el apunte');
+      }
+    } catch (e) {
+      if (!ConnectivityService.isNetworkError(e)) rethrow;
+
+      ConnectivityService.instance.reportFailure();
+      final cached = await LocalCache.readJson('note_$id');
+      if (cached is Map) {
+        return _noteFromBackendJson(Map<String, dynamic>.from(cached));
+      }
       throw Exception(
-          data['message'] ?? data['error'] ?? 'Error al cargar el apunte');
+          'Esta nota aún no está guardada para verla sin conexión. Ábrela una vez con internet.');
     }
   }
 
@@ -140,25 +224,38 @@ class NotesService {
   static Future<NoteModel> saveNote(NoteModel note, {bool isNew = true}) async {
     final token = await _getToken();
     if (token == null) throw Exception('No hay sesión activa');
+    _requireOnline();
 
     final body = jsonEncode(_noteToBackendJson(note));
 
-    final response = isNew
-        ? await http.post(
-            Uri.parse('${ApiService.baseUrl}/notes'),
-            headers: _headers(token),
-            body: body,
-          )
-        : await http.put(
-            Uri.parse('${ApiService.baseUrl}/notes/${note.id}'),
-            headers: _headers(token),
-            body: body,
-          );
+    late final http.Response response;
+    try {
+      response = isNew
+          ? await http
+              .post(
+                Uri.parse('${ApiService.baseUrl}/notes'),
+                headers: _headers(token),
+                body: body,
+              )
+              .timeout(const Duration(seconds: 30))
+          : await http
+              .put(
+                Uri.parse('${ApiService.baseUrl}/notes/${note.id}'),
+                headers: _headers(token),
+                body: body,
+              )
+              .timeout(const Duration(seconds: 30));
+    } catch (e) {
+      if (ConnectivityService.isNetworkError(e)) _throwOffline();
+      rethrow;
+    }
 
     final data = jsonDecode(response.body);
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      return _noteFromBackendJson(data);
+      final saved = _noteFromBackendJson(data);
+      await LocalCache.saveJson('note_${saved.id}', data);
+      return saved;
     } else {
       throw Exception(
           data['message'] ?? data['error'] ?? 'Error al guardar el apunte');
@@ -168,16 +265,27 @@ class NotesService {
   static Future<void> deleteNote(String id) async {
     final token = await _getToken();
     if (token == null) throw Exception('No hay sesión activa');
+    _requireOnline();
 
-    final response = await http.delete(
-      Uri.parse('${ApiService.baseUrl}/notes/$id'),
-      headers: _headers(token),
-    );
+    late final http.Response response;
+    try {
+      response = await http
+          .delete(
+            Uri.parse('${ApiService.baseUrl}/notes/$id'),
+            headers: _headers(token),
+          )
+          .timeout(const Duration(seconds: 15));
+    } catch (e) {
+      if (ConnectivityService.isNetworkError(e)) _throwOffline();
+      rethrow;
+    }
 
     if (response.statusCode != 200 && response.statusCode != 204) {
       final data = jsonDecode(response.body);
       throw Exception(
           data['message'] ?? data['error'] ?? 'Error al eliminar el apunte');
     }
+
+    await LocalCache.remove('note_$id');
   }
 }

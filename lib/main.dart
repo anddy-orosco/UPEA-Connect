@@ -15,9 +15,13 @@ import 'screens/focus_store_screen.dart';
 // Servicios
 import 'services/notification_service.dart';
 import 'services/theme_service.dart';
+import 'services/connectivity_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Empezar a vigilar si hay conexión con el backend (modo sin conexión)
+  ConnectivityService.instance.start();
 
   // Inicializar idioma español para las fechas del calendario
   await initializeDateFormatting('es_ES', null);
@@ -48,8 +52,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: themeService,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<ThemeService>.value(value: themeService),
+        ChangeNotifierProvider<ConnectivityService>.value(
+          value: ConnectivityService.instance,
+        ),
+      ],
       child: Consumer<ThemeService>(
         builder: (context, theme, _) {
           return MaterialApp(
