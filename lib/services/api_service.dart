@@ -130,4 +130,43 @@ class ApiService {
       throw Exception(data['message'] ?? data['error'] ?? 'Error al subir la imagen');
     }
   }
+
+  /// Actualiza el perfil en el servidor (PUT /auth/profile).
+  /// Solo se envían los campos que no sean null. Devuelve el usuario actualizado.
+  static Future<Map<String, dynamic>> updateProfile({
+    String? nombre,
+    String? carrera,
+    String? semestre,
+    String? fotoUrl,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    if (token == null) throw Exception('No hay sesión activa');
+
+    final body = <String, dynamic>{
+      if (nombre != null) 'nombre': nombre,
+      if (carrera != null) 'carrera': carrera,
+      if (semestre != null) 'semestre': semestre,
+      if (fotoUrl != null) 'fotoUrl': fotoUrl,
+    };
+
+    final response = await http
+        .put(
+          Uri.parse('$baseUrl/auth/profile'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode(body),
+        )
+        .timeout(const Duration(seconds: 20));
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return data as Map<String, dynamic>;
+    } else {
+      throw Exception(data['message'] ?? data['error'] ?? 'Error al actualizar el perfil');
+    }
+  }
 }

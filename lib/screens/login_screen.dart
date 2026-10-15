@@ -68,6 +68,12 @@ class _LoginScreenState extends State<LoginScreen> {
       await prefs.setString('user_email', user['email'] ?? '');
       await prefs.setString('user_carrera', user['carrera'] ?? '');
       await prefs.setString('user_semestre', user['semestre'] ?? '');
+      final fotoUrl = user['fotoUrl'];
+      if (fotoUrl is String && fotoUrl.isNotEmpty) {
+        await prefs.setString('user_foto_path', fotoUrl);
+      } else {
+        await prefs.remove('user_foto_path');
+      }
       await prefs.setBool('is_logged_in', true);
 
       if (mounted) {

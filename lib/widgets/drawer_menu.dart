@@ -1,10 +1,10 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/user_model.dart';
 import '../services/theme_service.dart';
 import '../theme/app_theme.dart';
 import 'diagonal_split_painter.dart';
+import 'user_photo.dart';
 import '../screens/credits_screen.dart'; // <--- Importación de la pantalla de Créditos / Easter Egg
 
 class DrawerMenu extends StatelessWidget {
@@ -254,7 +254,10 @@ class DrawerMenu extends StatelessWidget {
                   ),
                   child: ClipOval(
                     child: hasPhoto
-                        ? Image.file(File(currentUser!.fotoPath!), fit: BoxFit.cover)
+                        ? UserPhoto(
+                            path: currentUser!.fotoPath!,
+                            fallback: Icon(Icons.person_rounded, size: 38, color: colorScheme.primary),
+                          )
                         : Container(
                       color: Colors.white,
                       child: Icon(Icons.person_rounded, size: 38, color: colorScheme.primary),
