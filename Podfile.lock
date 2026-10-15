@@ -1,0 +1,28 @@
+PODS:
+  - Flutter (1.0.0)
+  - flutter_local_notifications (0.0.1):
+    - Flutter
+  - pdf_render (0.0.1):
+    - Flutter
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - flutter_local_notifications (from `.symlinks/plugins/flutter_local_notifications/ios`)
+  - pdf_render (from `.symlinks/plugins/pdf_render/ios`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  flutter_local_notifications:
+    :path: ".symlinks/plugins/flutter_local_notifications/ios"
+  pdf_render:
+    :path: ".symlinks/plugins/pdf_render/ios"
+
+SPEC CHECKSUMS:
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  flutter_local_notifications: ad39620c743ea4c15127860f4b5641649a988100
+  pdf_render: 5f9586e5fd49519bf59ea14a6da4851616e91c81
+
+PODFILE CHECKSUM: 683d5abfe1ded076b2033ad71d8ad06431777731
+
+COCOAPODS: 1.17.0
