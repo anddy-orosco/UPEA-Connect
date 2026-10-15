@@ -62,14 +62,202 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _hasText = false;
   bool _showScrollDown = false;
 
+  /// Modelo de IA elegido ('auto' = el servidor prueba todos en orden).
+  String _selectedModel = AiChatService.autoModel;
+  List<ChatModelOption> _models = [];
+
   @override
   void initState() {
     super.initState();
+    _loadModels();
     _controller.addListener(() {
       final has = _controller.text.trim().isNotEmpty;
       if (has != _hasText) setState(() => _hasText = has);
     });
     _scrollController.addListener(_onScroll);
+  }
+
+  Future<void> _loadModels() async {
+    final selected = await AiChatService.getSelectedModel();
+    final models = await AiChatService.fetchModels();
+    if (!mounted) return;
+
+    setState(() {
+      _models = models;
+      // Si el modelo guardado ya no está en la lista, vuelve a Automático.
+      final existe = models.any((m) => m.id == selected);
+      _selectedModel = existe ? selected : AiChatService.autoModel;
+    });
+  }
+
+  String get _modelLabel {
+    if (_selectedModel == AiChatService.autoModel) return 'Automático';
+    for (final m in _models) {
+      if (m.id == _selectedModel) return m.label;
+    }
+    return 'Automático';
+  }
+
+  Future<void> _abrirSelectorModelo() async {
+    // Se refresca la lista por si el servidor la cambió o no se había podido cargar.
+    if (_models.isEmpty) await _loadModels();
+    if (!mounted) return;
+
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final elegido = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        Widget opcion(String id, String titulo, String? subtitulo,
+            {String? etiqueta}) {
+          final seleccionado = id == _selectedModel;
+          return InkWell(
+            onTap: () => Navigator.pop(ctx, id),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                titulo,
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                            if (etiqueta != null) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primary.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  etiqueta,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        if (subtitulo != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitulo,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (seleccionado)
+                    Icon(Icons.check, color: colorScheme.primary),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final filas = <Widget>[
+          opcion(
+            AiChatService.autoModel,
+            'Automático',
+            'Si un modelo se satura o llega a su límite, usa otro.',
+            etiqueta: 'Recomendado',
+          ),
+          for (final m in _models) opcion(m.id, m.label, m.description),
+        ];
+
+        // Separadores finos entre filas, como en la lista de modelos de Claude.
+        final conLineas = <Widget>[];
+        for (var i = 0; i < filas.length; i++) {
+          if (i > 0) {
+            conLineas.add(Divider(
+              height: 1,
+              color: colorScheme.onSurface.withOpacity(0.08),
+            ));
+          }
+          conLineas.add(filas[i]);
+        }
+
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Seleccionar modelo',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48), // equilibra el botón de cerrar
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: colorScheme.onSurface.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(children: conLineas),
+                ),
+                if (_models.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      'No se pudo cargar la lista de modelos. Revisa tu conexión.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (elegido == null || !mounted) return;
+
+    await AiChatService.setSelectedModel(elegido);
+    if (!mounted) return;
+    setState(() => _selectedModel = elegido);
   }
 
   void _onScroll() {
@@ -257,22 +445,41 @@ class _ChatScreenState extends State<ChatScreen> {
                   size: 18, color: colorScheme.onPrimary),
             ),
             const SizedBox(width: 10),
-            Column(
+            Expanded(
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'Asistente UPEA',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
-                Text(
-                  'Asistente académico',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w400,
-                    color: colorScheme.onPrimary.withOpacity(0.8),
+                InkWell(
+                  onTap: _isLoading ? null : _abrirSelectorModelo,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          'Modelo: $_modelLabel',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w400,
+                            color: colorScheme.onPrimary.withOpacity(0.85),
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        Icons.arrow_drop_down,
+                        size: 18,
+                        color: colorScheme.onPrimary.withOpacity(0.85),
+                      ),
+                    ],
                   ),
                 ),
               ],
+            ),
             ),
           ],
         ),
@@ -564,15 +771,33 @@ class _ChatScreenState extends State<ChatScreen> {
                 _lastFailedText != null &&
                 !_isLoading) ...[
               const SizedBox(height: 6),
-              TextButton.icon(
-                onPressed: _reintentar,
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Reintentar'),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  minimumSize: const Size(0, 32),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
+              Wrap(
+                spacing: 4,
+                children: [
+                  TextButton.icon(
+                    onPressed: _reintentar,
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text('Reintentar'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: const Size(0, 32),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                  if (message.errorCode == 'AI_QUOTA' ||
+                      message.errorCode == 'AI_BUSY' ||
+                      message.errorCode == 'INVALID_MODEL')
+                    TextButton.icon(
+                      onPressed: _abrirSelectorModelo,
+                      icon: const Icon(Icons.swap_horiz, size: 18),
+                      label: const Text('Cambiar modelo'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: const Size(0, 32),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                ],
               ),
             ],
             if (message.action != null) ...[
