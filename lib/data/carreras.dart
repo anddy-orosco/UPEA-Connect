@@ -102,7 +102,7 @@ const List<AreaCarreras> areasUpea = [
   AreaCarreras(
     nombre: 'Carreras sin Áreas',
     carreras: [
-      Carrera(nombre: 'Ingeniería en Sistemas', duracion: 10, unidad: UnidadAcademica.semestre),
+      Carrera(nombre: 'Ingeniería de Sistemas', duracion: 10, unidad: UnidadAcademica.semestre),
       Carrera(nombre: 'Derecho', duracion: 5, unidad: UnidadAcademica.anio),
       Carrera(nombre: 'Ciencias Políticas', duracion: 10, unidad: UnidadAcademica.semestre),
       Carrera(nombre: 'Ciencias Físicas y Energías Alternativas', duracion: 10, unidad: UnidadAcademica.semestre),
