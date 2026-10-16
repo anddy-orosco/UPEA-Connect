@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/colors.dart';
 import '../models/user_model.dart';
-import 'login_screen.dart'; // <-- IMPORTANTE: Importar LoginScreen
+import 'login_screen.dart';
 
 class AccountSwitcher extends StatefulWidget {
   final UserModel currentUser;
@@ -57,7 +57,6 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
   }
 
   Future<void> _deleteAccount(String email) async {
-    // Mostrar diálogo de confirmación
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -108,7 +107,6 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // Guardar como usuario actual
       await prefs.setString('user_nombre', account['nombre']!);
       await prefs.setString('user_email', account['email']!);
       await prefs.setString('user_carrera', account['carrera']!);
@@ -123,10 +121,8 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
       );
 
       if (mounted) {
-        // Actualizar el estado en HomeScreen
         widget.onAccountSelected(user);
 
-        // Mostrar mensaje de éxito
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('✓ Cambiado a ${user.nombre}'),
@@ -135,10 +131,8 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
           ),
         );
 
-        // Pequeña pausa para que se vea el mensaje
         await Future.delayed(const Duration(milliseconds: 500));
 
-        // Cerrar AccountSwitcher y volver
         if (mounted) {
           Navigator.of(context).pop();
         }
@@ -167,12 +161,7 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('Cambiar Cuenta'),
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
-        elevation: 0,
-      ),
+      // Se eliminó el AppBar superior por completo
       body: _isLoading
           ? Center(
         child: CircularProgressIndicator(
@@ -183,13 +172,8 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
         padding: const EdgeInsets.all(16),
         children: [
           const SizedBox(height: 10),
-
-          // Cuenta actual (destacada)
           _buildCurrentAccountCard(colorScheme),
-
           const SizedBox(height: 30),
-
-          // Título de otras cuentas
           Row(
             children: [
               Container(
@@ -212,18 +196,13 @@ class _AccountSwitcherState extends State<AccountSwitcher> {
             ],
           ),
           const SizedBox(height: 16),
-
-          // Lista de cuentas guardadas
           if (_savedAccounts.isEmpty)
             _buildEmptyState(colorScheme)
           else
             ..._buildOtherAccountsList(colorScheme),
 
           const SizedBox(height: 24),
-
-          // Botón para agregar nueva cuenta
           _buildAddAccountButton(colorScheme),
-
           const SizedBox(height: 16),
         ],
       ),

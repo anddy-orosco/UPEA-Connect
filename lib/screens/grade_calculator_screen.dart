@@ -88,140 +88,146 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Selector de Modalidad de Calificación
-            _buildModeSelector(colorScheme),
-            const SizedBox(height: 12),
+    return GestureDetector(
+      // Solución: Oculta el teclado automáticamente al tocar fuera de los inputs
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: SingleChildScrollView(
+          // Solución: Oculta el teclado al hacer scroll hacia abajo o arrastrar
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Selector de Modalidad de Calificación
+              _buildModeSelector(colorScheme),
+              const SizedBox(height: 12),
 
-            // Tarjeta de Resumen / Estado
-            _buildScoreCard(colorScheme),
-            const SizedBox(height: 16),
+              // Tarjeta de Resumen / Estado
+              _buildScoreCard(colorScheme),
+              const SizedBox(height: 16),
 
-            // Advertencia de Ponderación
-            if ((_totalWeight - 100.0).abs() > 0.01)
-              Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.amber.shade100,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.amber.shade800),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.warning_amber_rounded, color: Colors.amber.shade900),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Ponderación total: ${_totalWeight.toStringAsFixed(1)} pts (debe sumar 100 pts).',
-                        style: TextStyle(
-                          color: Colors.amber.shade900,
-                          fontWeight: FontWeight.w600,
+              // Advertencia de Ponderación
+              if ((_totalWeight - 100.0).abs() > 0.01)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.amber.shade800),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: Colors.amber.shade900),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Ponderación total: ${_totalWeight.toStringAsFixed(1)} pts (debe sumar 100 pts).',
+                          style: TextStyle(
+                            color: Colors.amber.shade900,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-
-            // Encabezado de Evaluaciones
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Evaluaciones',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.primary,
+                    ],
                   ),
                 ),
-                TextButton.icon(
-                  onPressed: _addNewEvaluationDialog,
-                  icon: Icon(Icons.add_circle_outline, color: colorScheme.primary),
-                  label: Text('Agregar Ítem', style: TextStyle(color: colorScheme.primary)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
 
-            // Lista de Evaluaciones
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _evaluations.length,
-              itemBuilder: (context, index) {
-                return _buildEvaluationTile(_evaluations[index], index, colorScheme);
-              },
-            ),
-
-            const SizedBox(height: 12),
-
-            // Sección de Puntos Extra
-            Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    const CircleAvatar(
-                      backgroundColor: Colors.amberAccent,
-                      child: Icon(Icons.star, color: Colors.black87),
+              // Encabezado de Evaluaciones
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Evaluaciones',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.primary,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Puntos Extra:',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
+                  ),
+                  TextButton.icon(
+                    onPressed: _addNewEvaluationDialog,
+                    icon: Icon(Icons.add_circle_outline, color: colorScheme.primary),
+                    label: Text('Agregar Ítem', style: TextStyle(color: colorScheme.primary)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // Lista de Evaluaciones
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _evaluations.length,
+                itemBuilder: (context, index) {
+                  return _buildEvaluationTile(_evaluations[index], index, colorScheme);
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              // Sección de Puntos Extra
+              Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      const CircleAvatar(
+                        backgroundColor: Colors.amberAccent,
+                        child: Icon(Icons.star, color: Colors.black87),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Puntos Extra:',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
                         ),
                       ),
-                    ),
-                    SizedBox(
-                      width: 90,
-                      child: TextField(
-                        controller: _extraController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: colorScheme.onSurface),
-                        decoration: InputDecoration(
-                          hintText: '+0 pts',
-                          contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: colorScheme.onSurface.withOpacity(0.2)),
+                      SizedBox(
+                        width: 90,
+                        child: TextField(
+                          controller: _extraController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: colorScheme.onSurface),
+                          decoration: InputDecoration(
+                            hintText: '+0 pts',
+                            contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: colorScheme.onSurface.withOpacity(0.2)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: colorScheme.onSurface.withOpacity(0.2)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: colorScheme.primary),
+                            ),
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: colorScheme.onSurface.withOpacity(0.2)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: colorScheme.primary),
-                          ),
+                          onChanged: (val) {
+                            setState(() {
+                              _extraPoints = double.tryParse(val) ?? 0.0;
+                            });
+                          },
                         ),
-                        onChanged: (val) {
-                          setState(() {
-                            _extraPoints = double.tryParse(val) ?? 0.0;
-                          });
-                        },
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-          ],
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
@@ -279,14 +285,10 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
     final req = _requiredOnPending;
     final total = _earnedTotal;
 
-    // Determinación del estado académico. statusBgColor por defecto sigue
-    // el color primario del tema activo (antes era Colors.indigo fijo, por
-    // lo que esta tarjeta siempre se veía azul sin importar el tema).
     String statusText = '';
     Color statusBgColor = colorScheme.primary;
 
     if (_pendingWeight == 0) {
-      // Si no quedan evaluaciones pendientes
       if (total >= 51.0) {
         statusText = '🎉 ¡Aprobado!';
       } else if (total >= 40.5 && total < 51.0) {
@@ -297,7 +299,6 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
         statusBgColor = Colors.red.shade900;
       }
     } else {
-      // Si aún hay notas pendientes
       if (total >= 51.0) {
         statusText = '🎉 ¡Ya alcanzaste la nota de aprobación!';
       } else if (total >= 40.5) {
