@@ -5,8 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 
 // Pantallas base del proyecto
-import 'screens/login_screen.dart';
-import 'screens/home_screen.dart';
+import 'screens/splash_screen.dart';
 
 // Módulo Pomodoro y Tienda (tus pantallas)
 import 'screens/pomodoro_screen.dart';
@@ -32,21 +31,28 @@ void main() async {
   // Verificar sesión persistida
   final prefs = await SharedPreferences.getInstance();
   final isLoggedIn = prefs.getBool('is_logged_in') ?? false;
+  final onboardingVisto = prefs.getBool('onboarding_visto') ?? false;
 
   // Cargar el tema guardado en SharedPreferences
   final themeService = ThemeService();
   await themeService.loadTheme();
 
-  runApp(MyApp(isLoggedIn: isLoggedIn, themeService: themeService));
+  runApp(MyApp(
+    isLoggedIn: isLoggedIn,
+    onboardingVisto: onboardingVisto,
+    themeService: themeService,
+  ));
 }
 
 class MyApp extends StatelessWidget {
   final bool isLoggedIn;
+  final bool onboardingVisto;
   final ThemeService themeService;
 
   const MyApp({
     super.key,
     required this.isLoggedIn,
+    required this.onboardingVisto,
     required this.themeService,
   });
 
@@ -73,7 +79,10 @@ class MyApp extends StatelessWidget {
               Locale('es', 'ES'),
             ],
             theme: theme.themeData,
-            home: isLoggedIn ? const HomeScreen() : const LoginScreen(),
+            home: SplashScreen(
+              isLoggedIn: isLoggedIn,
+              onboardingVisto: onboardingVisto,
+            ),
             routes: {
               '/pomodoro': (context) => const PomodoroScreen(),
               '/focus_store': (context) => const FocusStoreScreen(),
