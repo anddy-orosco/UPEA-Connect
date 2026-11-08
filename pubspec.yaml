@@ -38,6 +38,7 @@ dependencies:
 
   # UI y utilidades
   cupertino_icons: ^1.0.8
+  audioplayers: ^6.8.1
 
 dependency_overrides:
   archive: 3.6.1
@@ -55,7 +56,7 @@ flutter:
   assets:
     - assets/images/
     - assets/animations/
-
+    - assets/audio/
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true

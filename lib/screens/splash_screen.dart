@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -53,6 +54,7 @@ class _SplashScreenState extends State<SplashScreen>
   Timer? _seguridad;
   Timer? _estatico;
   Timer? _vibracion;
+  AudioPlayer? _audio;
   bool _iniciado = false;
   bool _reducido = false;
   bool _navegando = false;
@@ -80,14 +82,14 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
       duration: const Duration(seconds: 6),
     );
-    _opLogo = _tramo(1.5, 1.9, curva: Curves.easeOut);
-    _escalaLogo = _tramo(1.5, 2.2, curva: Curves.easeOutBack);
+    _opLogo = _tramo(1.3, 1.7, curva: Curves.easeOut);
+    _escalaLogo = _tramo(1.3, 2.0, curva: Curves.easeOutBack);
     _letras = List<CurvedAnimation>.generate(_textoMarca.length, (int i) {
-      final double ini = 1.9 + i * 0.07;
+      final double ini = 1.7 + i * 0.07;
       return _tramo(ini, ini + 0.35, curva: Curves.easeOutCubic);
     });
-    _brillo = _tramo(2.9, 3.5, curva: Curves.easeInOut);
-    _resplandorTexto = _tramo(2.7, 3.4, curva: Curves.easeOut);
+    _brillo = _tramo(2.7, 3.3, curva: Curves.easeInOut);
+    _resplandorTexto = _tramo(2.5, 3.2, curva: Curves.easeOut);
   }
 
   @override
@@ -105,9 +107,12 @@ class _SplashScreenState extends State<SplashScreen>
       _principal.addStatusListener((AnimationStatus estado) {
         if (estado == AnimationStatus.completed) _navegar();
       });
+      // Precarga el logo para que no aparezca con retraso.
+      precacheImage(const AssetImage('assets/images/splash_logo.png'), context);
+      _iniciarSonido();
       _principal.forward();
       _ambiente.repeat();
-      _vibracion = Timer(const Duration(milliseconds: 1400), () {
+      _vibracion = Timer(const Duration(milliseconds: 1250), () {
         HapticFeedback.lightImpact();
       });
     }
@@ -115,9 +120,24 @@ class _SplashScreenState extends State<SplashScreen>
     _seguridad = Timer(const Duration(seconds: 7), _navegar);
   }
 
+  /// Reproduce el sonido de la animación. Si falla (por ejemplo, el navegador bloquea
+  /// el audio automático), el splash sigue igual, solo que sin sonido.
+  Future<void> _iniciarSonido() async {
+    try {
+      final AudioPlayer reproductor = AudioPlayer();
+      _audio = reproductor;
+      await reproductor.setReleaseMode(ReleaseMode.stop);
+      await reproductor.setVolume(0.9);
+      await reproductor.play(AssetSource('audio/splash_intro.mp3'));
+    } catch (_) {
+      // Sin sonido: no pasa nada.
+    }
+  }
+
   void _navegar() {
     if (_navegando || !mounted) return;
     _navegando = true;
+    _audio?.stop();
     final Widget destino = widget.isLoggedIn
         ? const HomeScreen()
         : (widget.onboardingVisto
@@ -141,6 +161,7 @@ class _SplashScreenState extends State<SplashScreen>
     _seguridad?.cancel();
     _estatico?.cancel();
     _vibracion?.cancel();
+    _audio?.dispose();
     for (final CurvedAnimation c in _curvas) {
       c.dispose();
     }
@@ -426,7 +447,7 @@ class _FondoPainter extends CustomPainter {
 
     // Resplandor azul centrado EXACTAMENTE en el logo, que respira.
     final double respira = 1.0 + 0.04 * math.sin(ambiente.value * 2 * math.pi);
-    final double intensidad = 0.22 + 0.78 * _suave(seg, 1.2, 2.0);
+    final double intensidad = 0.4 + 0.6 * _suave(seg, 1.0, 1.8);
     final double radio = logo * 1.8 * respira;
     const Color azulProfundo = Color(0xFF0E3A6B);
     canvas.drawCircle(
@@ -443,7 +464,7 @@ class _FondoPainter extends CustomPainter {
 
     // Destello cuando explota la luz (alrededor de 1.5 s).
     final double destello =
-        _suave(seg, 1.35, 1.6) * (1.0 - _suave(seg, 1.6, 2.3));
+        _suave(seg, 1.15, 1.4) * (1.0 - _suave(seg, 1.4, 2.1));
     if (destello > 0.0) {
       final double rd = logo * 1.1;
       canvas.drawCircle(
@@ -477,7 +498,7 @@ class _FondoPainter extends CustomPainter {
   }
 
   void _pintarOndas(Canvas canvas, Size size, double seg) {
-    final double op = _suave(seg, 1.8, 2.7) * 0.32;
+    final double op = _suave(seg, 1.6, 2.5) * 0.32;
     if (op <= 0.0) return;
     final double fase = ambiente.value * 2 * math.pi;
     final double amp = logo * 0.12;
@@ -522,7 +543,7 @@ class _FondoPainter extends CustomPainter {
   }
 
   void _pintarParticulas(Canvas canvas, double seg) {
-    final double entra = _suave(seg, 1.6, 2.4);
+    final double entra = _suave(seg, 1.4, 2.2);
     if (entra <= 0.0) return;
     final Paint pincel = Paint();
     for (final _Particula q in _particulas) {
@@ -580,16 +601,18 @@ class _EfectosPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final double seg = principal.value * _duracionTotal;
-    if (seg < 1.7) _pintarEstelas(canvas, seg);
-    if (seg > 0.55 && seg < 2.3) _pintarContorno(canvas, seg);
-    if (seg > 1.35 && seg < 3.0) _pintarExplosion(canvas, seg);
+    if (seg < 1.5) _pintarEstelas(canvas, seg);
+    if (seg > 0.2 && seg < 2.1) _pintarContorno(canvas, seg);
+    if (seg > 1.2 && seg < 3.0) _pintarExplosion(canvas, seg);
   }
 
   // Tres estelas de luz que giran en espiral y se cierran hacia el logo.
   void _pintarEstelas(Canvas canvas, double seg) {
-    final double p =
-        Curves.easeInOut.transform((seg / 1.4).clamp(0.0, 1.0).toDouble());
-    final double desv = 1.0 - _suave(seg, 1.15, 1.65);
+    // Empiezan ya visibles (con 12 % de recorrido) y arrancan rápido: nada de pantalla vacía.
+    final double p = 0.12 +
+        0.88 *
+            Curves.easeOut.transform((seg / 1.1).clamp(0.0, 1.0).toDouble());
+    final double desv = 1.0 - _suave(seg, 1.0, 1.45);
     if (desv <= 0.0) return;
     const int pasos = 22;
 
@@ -681,8 +704,8 @@ class _EfectosPainter extends CustomPainter {
   // Una luz recorre el borde del logo y la órbita del planeta, dibujándolos.
   void _pintarContorno(Canvas canvas, double seg) {
     final double p = Curves.easeInOut
-        .transform(((seg - 0.6) / 0.9).clamp(0.0, 1.0).toDouble());
-    final double op = 1.0 - _suave(seg, 1.6, 2.2);
+        .transform(((seg - 0.25) / 0.85).clamp(0.0, 1.0).toDouble());
+    final double op = 1.0 - _suave(seg, 1.4, 2.0);
     if (op <= 0.0 || p <= 0.0) return;
 
     final Rect cuadro =
@@ -718,7 +741,7 @@ class _EfectosPainter extends CustomPainter {
 
   // Explosión radial de chispas y un anillo de onda desde el centro del logo.
   void _pintarExplosion(Canvas canvas, double seg) {
-    final double b = ((seg - 1.4) / 1.1).clamp(0.0, 1.0).toDouble();
+    final double b = ((seg - 1.25) / 1.1).clamp(0.0, 1.0).toDouble();
     final double e = Curves.easeOutCubic.transform(b);
     final double alpha = math.pow(1.0 - b, 1.3).toDouble();
     final double escala = (logo / 240.0).clamp(0.6, 1.4).toDouble();
@@ -733,7 +756,7 @@ class _EfectosPainter extends CustomPainter {
       canvas.drawCircle(pos, c.tam * escala * (1.0 - 0.5 * b), pincel);
     }
 
-    final double br = ((seg - 1.4) / 0.7).clamp(0.0, 1.0).toDouble();
+    final double br = ((seg - 1.25) / 0.7).clamp(0.0, 1.0).toDouble();
     if (br < 1.0) {
       final double radio =
           logo * (0.45 + 1.5 * Curves.easeOutCubic.transform(br));
