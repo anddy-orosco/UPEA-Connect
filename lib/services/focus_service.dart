@@ -10,11 +10,13 @@ class FocusService {
   static const String _keySubjects = 'focus_subjects';
   static const String _keyActiveSubjectId = 'focus_active_subject_id';
 
-  // Claves para Tienda de Botánica (Plantas y Macetas)
+  // Claves para Tienda de Botánica (Plantas, Macetas y Adornos)
   static const String _keyPurchasedSpecies = 'purchased_species';
   static const String _keyEquippedSpecies = 'equipped_species';
   static const String _keyPurchasedPots = 'purchased_pots';
   static const String _keyEquippedPot = 'equipped_pot';
+  static const String _keyPurchasedDecorations = 'focus_purchased_decorations';
+  static const String _keyEquippedDecoration = 'focus_equipped_decoration';
 
   // --- VALIDACIONES DE TIENDA (Bonsái excluido) ---
   static const List<String> validSpecies = [
@@ -28,6 +30,15 @@ class FocusService {
     'pot_gold',
     'pot_japanese',
     'pot_volcanic',
+  ];
+
+  static const List<String> validDecorations = [
+    'dec_none',
+    'dec_bees',
+    'dec_butterflies',
+    'dec_owl',
+    'dec_stars',
+    'dec_glitters',
   ];
 
   // Lista de colores predefinidos para asignar automáticamente a materias
@@ -128,7 +139,7 @@ class FocusService {
     await prefs.setStringList(_keySubjects, rawList);
   }
 
-  // 🟢 NUEVO: Actualizar la planta (especie, maceta o progreso) de una materia específica
+  // Actualizar la planta (especie, maceta o progreso) de una materia específica
   Future<void> updateSubjectPlant({
     required String subjectId,
     String? equippedSpecies,
@@ -169,7 +180,7 @@ class FocusService {
   }
 
   // ==========================================
-  // GESTIÓN DE PLANTAS Y MACETAS (TIENDA Y POR MATERIA)
+  // GESTIÓN DE PLANTAS, MACETAS Y ADORNOS
   // ==========================================
 
   // --- ESPECIES DE PLANTAS ---
@@ -177,7 +188,6 @@ class FocusService {
     final prefs = await SharedPreferences.getInstance();
     final rawList = prefs.getStringList(_keyPurchasedSpecies) ?? ['sp_oak'];
 
-    // Filtra cualquier ID no válido
     final filtered = rawList.where((id) => validSpecies.contains(id)).toList();
     if (!filtered.contains('sp_oak')) {
       filtered.add('sp_oak');
@@ -210,7 +220,6 @@ class FocusService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyEquippedSpecies, speciesId);
 
-    // Equipar en la materia activa actual
     final activeId = await getActiveSubjectId();
     if (activeId != null) {
       await updateSubjectPlant(subjectId: activeId, equippedSpecies: speciesId);
@@ -274,7 +283,6 @@ class FocusService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyEquippedPot, potId);
 
-    // Equipar en la materia activa actual
     final activeId = await getActiveSubjectId();
     if (activeId != null) {
       await updateSubjectPlant(subjectId: activeId, equippedPot: potId);
@@ -299,5 +307,54 @@ class FocusService {
       return 'pot_default';
     }
     return pot;
+  }
+
+  // --- ADORNOS (ANIMACIONES LOTTIE) ---
+  Future<List<String>> getPurchasedDecorations() async {
+    final prefs = await SharedPreferences.getInstance();
+    final rawList = prefs.getStringList(_keyPurchasedDecorations) ?? ['dec_none'];
+
+    final filtered = rawList.where((id) => validDecorations.contains(id)).toList();
+    if (!filtered.contains('dec_none')) {
+      filtered.add('dec_none');
+    }
+
+    if (filtered.length != rawList.length) {
+      await prefs.setStringList(_keyPurchasedDecorations, filtered);
+    }
+    return filtered;
+  }
+
+  Future<bool> buyDecoration(String decorationId, int price) async {
+    if (!validDecorations.contains(decorationId)) return false;
+
+    final purchased = await getPurchasedDecorations();
+    if (purchased.contains(decorationId)) return true;
+
+    final success = await deductCoins(price);
+    if (success) {
+      purchased.add(decorationId);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_keyPurchasedDecorations, purchased);
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> equipDecoration(String decorationId) async {
+    if (!validDecorations.contains(decorationId)) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyEquippedDecoration, decorationId);
+  }
+
+  Future<String> getEquippedDecoration() async {
+    final prefs = await SharedPreferences.getInstance();
+    final decoration = prefs.getString(_keyEquippedDecoration) ?? 'dec_none';
+
+    if (!validDecorations.contains(decoration)) {
+      await prefs.setString(_keyEquippedDecoration, 'dec_none');
+      return 'dec_none';
+    }
+    return decoration;
   }
 }

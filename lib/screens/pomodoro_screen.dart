@@ -7,7 +7,7 @@ import '../services/focus_service.dart';
 import '../widgets/growing_plant_widget.dart';
 import 'focus_store_screen.dart';
 import 'analytics_screen.dart';
-import '../widgets/pomodoro_home_widget_preview.dart'; // <--- Importación del modal de Widget
+import '../widgets/pomodoro_home_widget_preview.dart';
 
 class PomodoroScreen extends StatefulWidget {
   const PomodoroScreen({super.key});
@@ -104,6 +104,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
 
     final pot = active?.equippedPot ?? await _focusService.getEquippedPot();
     final species = active?.equippedSpecies ?? await _focusService.getEquippedSpecies();
+    final decoration = await _focusService.getEquippedDecoration();
 
     if (mounted) {
       setState(() {
@@ -112,7 +113,102 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
         _activeSubject = active;
         _equippedPot = pot;
         _equippedSpecies = species;
+        _equippedDecoration = decoration;
       });
+    }
+  }
+
+  // Construye la capa de animación según el adorno equipado
+  Widget _buildDecorationOverlay() {
+    switch (_equippedDecoration) {
+      case 'dec_bees':
+      // Abejas revoloteando alrededor de la copa de la planta
+        return Positioned(
+          top: -35,
+          child: IgnorePointer(
+            child: SizedBox(
+              width: 310,
+              height: 310,
+              child: Lottie.asset(
+                'assets/animations/Bees Flying Pattern.json',
+                fit: BoxFit.contain,
+                repeat: true,
+              ),
+            ),
+          ),
+        );
+
+      case 'dec_butterflies':
+      // Mariposas alrededor de la planta decorándola
+        return Positioned(
+          top: -25,
+          child: IgnorePointer(
+            child: SizedBox(
+              width: 300,
+              height: 300,
+              child: Lottie.asset(
+                'assets/animations/Untitled file.json',
+                fit: BoxFit.contain,
+                repeat: true,
+              ),
+            ),
+          ),
+        );
+
+      case 'dec_owl':
+      // Búho posicionado a un costado de la planta
+        return Positioned(
+          top: 10,
+          right: -75,
+          child: IgnorePointer(
+            child: SizedBox(
+              width: 145,
+              height: 145,
+              child: Lottie.asset(
+                'assets/animations/Own flying.json',
+                fit: BoxFit.contain,
+                repeat: true,
+              ),
+            ),
+          ),
+        );
+
+      case 'dec_stars':
+      // Estrellas mágicas rodeando la planta
+        return Positioned(
+          top: -20,
+          child: IgnorePointer(
+            child: SizedBox(
+              width: 280,
+              height: 280,
+              child: Lottie.asset(
+                'assets/animations/star.json',
+                fit: BoxFit.contain,
+                repeat: true,
+              ),
+            ),
+          ),
+        );
+
+      case 'dec_glitters':
+      // Destellos dorados alrededor de la planta
+        return Positioned(
+          top: -20,
+          child: IgnorePointer(
+            child: SizedBox(
+              width: 290,
+              height: 290,
+              child: Lottie.asset(
+                'assets/animations/Coin  glitters.json',
+                fit: BoxFit.contain,
+                repeat: true,
+              ),
+            ),
+          ),
+        );
+
+      default:
+        return const SizedBox.shrink();
     }
   }
 
@@ -511,7 +607,6 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                       ),
                       Row(
                         children: [
-                          // Botón de Analítica
                           IconButton(
                             icon: const Icon(Icons.bar_chart_rounded, color: Colors.white, size: 26),
                             tooltip: 'Ver Analítica y Gráficos',
@@ -522,7 +617,6 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                               );
                             },
                           ),
-                          // Botón de Tienda
                           IconButton(
                             icon: const Icon(Icons.storefront_rounded, color: Colors.white, size: 26),
                             tooltip: 'Tienda de Enfoque',
@@ -534,7 +628,6 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                               _loadData();
                             },
                           ),
-                          // Botón de Home Widget (Colocado exactamente al lado de tienda y estadísticas)
                           IconButton(
                             icon: const Icon(Icons.widgets_rounded, color: Colors.white, size: 26),
                             tooltip: 'Vista Previa Home Widget',
@@ -546,7 +639,6 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                             },
                           ),
                           const SizedBox(width: 4),
-                          // Contador de Monedas
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
@@ -580,7 +672,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                   child: _buildSubjectSelector(),
                 ),
 
-                // Área Principal de la Planta
+                // Área Principal de la Planta + Adornos Animados
                 Expanded(
                   child: Center(
                     child: Stack(
@@ -593,6 +685,11 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                           equippedDecoration: _equippedDecoration,
                           equippedSpecies: _equippedSpecies,
                         ),
+
+                        // Adorno animado (Abejas, Mariposas, Búho, Estrellas o Brillos)
+                        _buildDecorationOverlay(),
+
+                        // Animación de Riego
                         if (_isWatering)
                           Positioned(
                             top: -190,

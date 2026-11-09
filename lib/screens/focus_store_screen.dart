@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import '../services/focus_service.dart';
 
 class FocusStoreScreen extends StatefulWidget {
@@ -18,7 +19,10 @@ class _FocusStoreScreenState extends State<FocusStoreScreen> {
   String _equippedPot = 'pot_default';
   List<String> _purchasedPots = ['pot_default'];
 
-  // Catálogo de Plantas (Sin Bonsái)
+  String _equippedDecoration = 'dec_none';
+  List<String> _purchasedDecorations = ['dec_none'];
+
+  // 1. Catálogo de Plantas
   final List<Map<String, dynamic>> _speciesCatalog = [
     {
       'id': 'sp_oak',
@@ -43,7 +47,7 @@ class _FocusStoreScreenState extends State<FocusStoreScreen> {
     },
   ];
 
-  // Catálogo de Macetas
+  // 2. Catálogo de Macetas
   final List<Map<String, dynamic>> _potsCatalog = [
     {
       'id': 'pot_default',
@@ -75,6 +79,52 @@ class _FocusStoreScreenState extends State<FocusStoreScreen> {
     },
   ];
 
+  // 3. Catálogo de Adornos / Animaciones
+  final List<Map<String, dynamic>> _decorationsCatalog = [
+    {
+      'id': 'dec_none',
+      'name': 'Sin Adornos',
+      'price': 0,
+      'lottie': null,
+      'description': 'Tu planta al natural, sin acompañantes animados.',
+    },
+    {
+      'id': 'dec_bees',
+      'name': 'Abejas del Jardín',
+      'price': 120,
+      'lottie': 'assets/animations/Bees Flying Pattern.json',
+      'description': 'Abejas trabajadoras revoloteando alrededor de tu planta.',
+    },
+    {
+      'id': 'dec_butterflies',
+      'name': 'Mariposas Mágicas',
+      'price': 150,
+      'lottie': 'assets/animations/Untitled file.json',
+      'description': 'Aleteo suave que decora el contorno de tus hojas.',
+    },
+    {
+      'id': 'dec_owl',
+      'name': 'Búho Guardián',
+      'price': 200,
+      'lottie': 'assets/animations/Own flying.json',
+      'description': 'Un sabio compañero de estudio que vuela a tu costado.',
+    },
+    {
+      'id': 'dec_stars',
+      'name': 'Polvo Estelar',
+      'price': 180,
+      'lottie': 'assets/animations/star.json',
+      'description': 'Destellos de estrellas mágicas rodeando tu planta.',
+    },
+    {
+      'id': 'dec_glitters',
+      'name': 'Brillo Áureo',
+      'price': 250,
+      'lottie': 'assets/animations/Coin  glitters.json',
+      'description': 'Resplandor dorado de prosperidad y máximo enfoque.',
+    },
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -89,13 +139,20 @@ class _FocusStoreScreenState extends State<FocusStoreScreen> {
     final purchasedPt = await _focusService.getPurchasedPots();
     final equippedPt = await _focusService.getEquippedPot();
 
-    setState(() {
-      _coins = coins;
-      _purchasedSpecies = purchasedSp;
-      _equippedSpecies = equippedSp;
-      _purchasedPots = purchasedPt;
-      _equippedPot = equippedPt;
-    });
+    final purchasedDec = await _focusService.getPurchasedDecorations();
+    final equippedDec = await _focusService.getEquippedDecoration();
+
+    if (mounted) {
+      setState(() {
+        _coins = coins;
+        _purchasedSpecies = purchasedSp;
+        _equippedSpecies = equippedSp;
+        _purchasedPots = purchasedPt;
+        _equippedPot = equippedPt;
+        _purchasedDecorations = purchasedDec;
+        _equippedDecoration = equippedDec;
+      });
+    }
   }
 
   Future<void> _handleSpeciesAction(Map<String, dynamic> item) async {
@@ -144,6 +201,29 @@ class _FocusStoreScreenState extends State<FocusStoreScreen> {
     }
   }
 
+  Future<void> _handleDecorationAction(Map<String, dynamic> item) async {
+    final String id = item['id'];
+    final int price = item['price'];
+    final bool isOwned = _purchasedDecorations.contains(id);
+
+    if (_equippedDecoration == id) return;
+
+    if (isOwned) {
+      await _focusService.equipDecoration(id);
+      await _loadStoreData();
+      _showMessage('¡${item['name']} equipado!');
+    } else {
+      final success = await _focusService.buyDecoration(id, price);
+      if (success) {
+        await _focusService.equipDecoration(id);
+        await _loadStoreData();
+        _showMessage('🎉 ¡Compraste y equipaste ${item['name']}!');
+      } else {
+        _showMessage('❌ No tienes suficientes monedas.', isError: true);
+      }
+    }
+  }
+
   void _showMessage(String text, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -157,13 +237,14 @@ class _FocusStoreScreenState extends State<FocusStoreScreen> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         backgroundColor: const Color(0xFF1E1E2C),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          title: const Text('Tienda de Botánica 🛒', style: TextStyle(color: Colors.white)),
+          title: const Text('Tienda de Botánica 🛒',
+              style: TextStyle(color: Colors.white)),
           iconTheme: const IconThemeData(color: Colors.white),
           actions: [
             Container(
@@ -175,7 +256,8 @@ class _FocusStoreScreenState extends State<FocusStoreScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.monetization_on_rounded, color: Colors.amber, size: 20),
+                  const Icon(Icons.monetization_on_rounded,
+                      color: Colors.amber, size: 20),
                   const SizedBox(width: 6),
                   Text(
                     '$_coins',
@@ -195,20 +277,23 @@ class _FocusStoreScreenState extends State<FocusStoreScreen> {
             tabs: [
               Tab(icon: Icon(Icons.local_florist_rounded), text: 'Plantas'),
               Tab(icon: Icon(Icons.inventory_2_rounded), text: 'Macetas'),
+              Tab(icon: Icon(Icons.auto_awesome_rounded), text: 'Adornos'),
             ],
           ),
         ),
         body: TabBarView(
           children: [
-            _buildGrid(_speciesCatalog, isPlantTab: true),
-            _buildGrid(_potsCatalog, isPlantTab: false),
+            _buildGrid(_speciesCatalog, tabType: 'species'),
+            _buildGrid(_potsCatalog, tabType: 'pots'),
+            _buildGrid(_decorationsCatalog, tabType: 'decorations'),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildGrid(List<Map<String, dynamic>> catalog, {required bool isPlantTab}) {
+  Widget _buildGrid(List<Map<String, dynamic>> catalog,
+      {required String tabType}) {
     return GridView.builder(
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -221,12 +306,20 @@ class _FocusStoreScreenState extends State<FocusStoreScreen> {
       itemBuilder: (context, index) {
         final item = catalog[index];
         final String id = item['id'];
-        final bool isOwned = isPlantTab
-            ? _purchasedSpecies.contains(id)
-            : _purchasedPots.contains(id);
-        final bool isEquipped = isPlantTab
-            ? _equippedSpecies == id
-            : _equippedPot == id;
+
+        bool isOwned = false;
+        bool isEquipped = false;
+
+        if (tabType == 'species') {
+          isOwned = _purchasedSpecies.contains(id);
+          isEquipped = _equippedSpecies == id;
+        } else if (tabType == 'pots') {
+          isOwned = _purchasedPots.contains(id);
+          isEquipped = _equippedPot == id;
+        } else {
+          isOwned = _purchasedDecorations.contains(id);
+          isEquipped = _equippedDecoration == id;
+        }
 
         return Container(
           decoration: BoxDecoration(
@@ -244,12 +337,34 @@ class _FocusStoreScreenState extends State<FocusStoreScreen> {
                 padding: const EdgeInsets.all(10.0),
                 child: Column(
                   children: [
-                    Image.asset(
-                      item['image'],
+                    SizedBox(
                       height: 85,
-                      fit: BoxFit.contain,
-                      errorBuilder: (c, e, s) =>
-                      const Icon(Icons.nature, size: 60, color: Colors.white30),
+                      child: tabType == 'decorations'
+                          ? (item['lottie'] != null
+                              ? Lottie.asset(
+                                  item['lottie'],
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (c, e, s) => const Icon(
+                                    Icons.auto_awesome,
+                                    size: 55,
+                                    color: Colors.amberAccent,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.block_rounded,
+                                  size: 55,
+                                  color: Colors.white30,
+                                ))
+                          : Image.asset(
+                              item['image'],
+                              height: 85,
+                              fit: BoxFit.contain,
+                              errorBuilder: (c, e, s) => const Icon(
+                                Icons.nature,
+                                size: 60,
+                                color: Colors.white30,
+                              ),
+                            ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -267,7 +382,8 @@ class _FocusStoreScreenState extends State<FocusStoreScreen> {
                       textAlign: TextAlign.center,
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white54, fontSize: 10),
+                      style:
+                          const TextStyle(color: Colors.white54, fontSize: 10),
                     ),
                   ],
                 ),
@@ -280,22 +396,31 @@ class _FocusStoreScreenState extends State<FocusStoreScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isEquipped
                           ? Colors.amber
-                          : (isOwned ? Colors.indigoAccent : Colors.green.shade600),
+                          : (isOwned
+                              ? Colors.indigoAccent
+                              : Colors.green.shade600),
                       foregroundColor: isEquipped ? Colors.black : Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: () => isPlantTab
-                        ? _handleSpeciesAction(item)
-                        : _handlePotAction(item),
+                    onPressed: () {
+                      if (tabType == 'species') {
+                        _handleSpeciesAction(item);
+                      } else if (tabType == 'pots') {
+                        _handlePotAction(item);
+                      } else {
+                        _handleDecorationAction(item);
+                      }
+                    },
                     child: Text(
                       isEquipped
                           ? 'Equipado'
                           : (isOwned
-                          ? 'Equipar'
-                          : 'Comprar (${item['price']} 🪙)'),
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                              ? 'Equipar'
+                              : 'Comprar (${item['price']} 🪙)'),
+                      style: const TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
