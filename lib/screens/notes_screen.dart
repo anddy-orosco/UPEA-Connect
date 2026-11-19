@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
@@ -780,6 +779,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final cardColor = Theme.of(context).cardColor;
+    final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -903,29 +903,30 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
               ),
             ),
 
-            // Paginador Inferior
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: cardColor,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Página ${_currentPage + 1} de ${_pages.length}',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: _addNewPage,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: colorScheme.primary,
-                      foregroundColor: colorScheme.onPrimary,
+            // Paginador Inferior (se oculta cuando el teclado está activo para no restar espacio a la hoja)
+            if (!isKeyboardVisible)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                color: cardColor,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Página ${_currentPage + 1} de ${_pages.length}',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface),
                     ),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Agregar Hoja'),
-                  ),
-                ],
+                    ElevatedButton.icon(
+                      onPressed: _addNewPage,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                      ),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Agregar Hoja'),
+                    ),
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),

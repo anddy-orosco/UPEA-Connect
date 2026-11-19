@@ -118,6 +118,10 @@ class DrawerMenu extends StatelessWidget {
                       isComingSoon: false, // Habilitado
                     ),
 
+                    const SizedBox(height: 12),
+                    _buildSectionHeader(context, 'COMUNIDAD Y NOTICIAS'),
+                    _buildNewsHighlightTile(context),
+
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 12.0),
                       child: Divider(height: 1),
@@ -471,6 +475,117 @@ class DrawerMenu extends StatelessWidget {
                   Icons.arrow_forward_ios_rounded,
                   size: 14,
                   color: isSelected ? Colors.white : colorScheme.primary,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNewsHighlightTile(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isSelected = selectedIndex == 10;
+    const fbBlue = Color(0xFF1877F2);
+    const deepBlue = Color(0xFF0D47A1);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: isSelected
+              ? const [fbBlue, deepBlue]
+              : [fbBlue.withValues(alpha: 0.12), deepBlue.withValues(alpha: 0.05)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(
+          color: isSelected ? Colors.transparent : fbBlue.withValues(alpha: 0.35),
+          width: 1.5,
+        ),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: fbBlue.withValues(alpha: 0.35),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => onMenuItemSelected(10),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Colors.white.withValues(alpha: 0.2) : fbBlue,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.newspaper_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Noticiero Sistemas',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: isSelected ? Colors.white : colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: isSelected ? const Color(0xFF40C4FF) : fbBlue,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'OFICIAL',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                                color: isSelected ? Colors.black : Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Comunicados, avisos y eventos',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isSelected
+                              ? Colors.white.withValues(alpha: 0.85)
+                              : colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: isSelected ? Colors.white : fbBlue,
                 ),
               ],
             ),

@@ -10,11 +10,36 @@
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
+		43766EA674D5B1647540DE18 /* maceta_dorada.png in Resources */ = {isa = PBXBuildFile; fileRef = E773866D83B96695D1B0A198 /* maceta_dorada.png */; };
+		49686D0A311C85713A00D913 /* PomodoroWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0DFBCA48B9B685C135587A8 /* PomodoroWidgetBundle.swift */; };
+		4D53F31B9C4469449F9D64E2 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1E621341381DA9BB58279488 /* WidgetKit.framework */; };
+		5FF04F056D057EE15C6FF41B /* fase1_plantula.png in Resources */ = {isa = PBXBuildFile; fileRef = FC7ED12ED40380D3607C7103 /* fase1_plantula.png */; };
+		64C7E3DCEEAA403A369DB9D6 /* fase1_sakura_brote.png in Resources */ = {isa = PBXBuildFile; fileRef = 7F92430AA813685B231425C9 /* fase1_sakura_brote.png */; };
+		6843C345FFCFA1B6019DFD3B /* maceta_normal.png in Resources */ = {isa = PBXBuildFile; fileRef = 4AB08B789A7F1A107E252817 /* maceta_normal.png */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
+		7895D6BACAF1E40D27AE00CE /* Pods_PomodoroWidget.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C6B1A1C2B2305830ACACE55C /* Pods_PomodoroWidget.framework */; };
+		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
+		85761046FBBEACEA5C3E9876 /* fase4_rosa_floripondio.png in Resources */ = {isa = PBXBuildFile; fileRef = 238AF6F59A2AE3929596F423 /* fase4_rosa_floripondio.png */; };
+		8A1B87461CF46B0FAA63BC85 /* fase1_rosa_brote.png in Resources */ = {isa = PBXBuildFile; fileRef = 8B5CCC30D6E579D219D9C751 /* fase1_rosa_brote.png */; };
+		8BBEE933DA24FF561153E078 /* fase3_planta_madura.png in Resources */ = {isa = PBXBuildFile; fileRef = 8E55A332BA1439CAC9BC9950 /* fase3_planta_madura.png */; };
+		8F78026BACE41CCADCF902E1 /* maceta_japonesa.png in Resources */ = {isa = PBXBuildFile; fileRef = C002FBCF5DCA700807C238C1 /* maceta_japonesa.png */; };
+		963B42033A7DB96C22C3B252 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CEE5C33E0092251A134D8C5 /* Foundation.framework */; };
+		9764315B49D879DC6FD79068 /* fase2_sakura_rama.png in Resources */ = {isa = PBXBuildFile; fileRef = 09471D1057DC2478B1CDAEA7 /* fase2_sakura_rama.png */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
-		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
+		9C212E8FE188654393439A63 /* fase4_sakura_plena.png in Resources */ = {isa = PBXBuildFile; fileRef = 41ECFA54CCDA9DAADC07FFAB /* fase4_sakura_plena.png */; };
+		9D30BE7B9687FEEA36A02A24 /* fase2_rosa_vastago.png in Resources */ = {isa = PBXBuildFile; fileRef = 0A06F0453FA61C0C8175A2B0 /* fase2_rosa_vastago.png */; };
+		9E8F125CAE05A5E923E52A46 /* maceta_volcanica.png in Resources */ = {isa = PBXBuildFile; fileRef = AF2C752645903F511F7AE065 /* maceta_volcanica.png */; };
+		AA228E7700BF168C6EB25FBF /* PomodoroWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7140B5B63A711ECBD0813950 /* PomodoroWidget.swift */; };
+		B27689413430CA99D7E7B412 /* fase4_planta_frondosa.png in Resources */ = {isa = PBXBuildFile; fileRef = F3C82C28F4FE3F08E506F521 /* fase4_planta_frondosa.png */; };
+		B876B5FDD04142D4742DE307 /* fase3_sakura_capullo.png in Resources */ = {isa = PBXBuildFile; fileRef = E42F9AB836024933F2C57639 /* fase3_sakura_capullo.png */; };
+		B8E436947FC14A76A7DC255B /* fase3_rosa_capullo.png in Resources */ = {isa = PBXBuildFile; fileRef = 82136A802F43DE16582576DD /* fase3_rosa_capullo.png */; };
+		BC7049356D22C3B687C855D9 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BEA28D9872055F406D11B791 /* Pods_Runner.framework */; };
+		BE533934BAA9B30915349847 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1BE7DC5FDB494B8034A47915 /* SwiftUI.framework */; };
+		C63D8EA62C5592EFB4429F0D /* PomodoroWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 62033C16D82E05978B8705E9 /* PomodoroWidget.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		CB7CF8ECB9E1836382E5F281 /* fase2_planta_joven.png in Resources */ = {isa = PBXBuildFile; fileRef = 65ED2F756AC8360D58C13FF3 /* fase2_planta_joven.png */; };
+		FD34FEE50852FE7B1F922708 /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C983AF783A35850568D3945E /* Pods_RunnerTests.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -25,9 +50,27 @@
 			remoteGlobalIDString = 97C146ED1CF9000F007C117D;
 			remoteInfo = Runner;
 		};
+		6D96305AD17D980D362E6FC4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 81879A578434D16D693588FE;
+			remoteInfo = PomodoroWidget;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		75F360C35812F518AB68A161 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				C63D8EA62C5592EFB4429F0D /* PomodoroWidget.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9705A1C41CF9048500538489 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -41,14 +84,36 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		09471D1057DC2478B1CDAEA7 /* fase2_sakura_rama.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = fase2_sakura_rama.png; sourceTree = "<group>"; };
+		0A06F0453FA61C0C8175A2B0 /* fase2_rosa_vastago.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = fase2_rosa_vastago.png; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
+		1A4D5DD1E0EA6F666B6E07F8 /* Pods-PomodoroWidget.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-PomodoroWidget.profile.xcconfig"; path = "Target Support Files/Pods-PomodoroWidget/Pods-PomodoroWidget.profile.xcconfig"; sourceTree = "<group>"; };
+		1BE7DC5FDB494B8034A47915 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		1C11D966E8C11FD163C5C4D3 /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
+		1E621341381DA9BB58279488 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		238AF6F59A2AE3929596F423 /* fase4_rosa_floripondio.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = fase4_rosa_floripondio.png; sourceTree = "<group>"; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
+		41ECFA54CCDA9DAADC07FFAB /* fase4_sakura_plena.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = fase4_sakura_plena.png; sourceTree = "<group>"; };
+		4A7C6836A23163BA32CD6C3E /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
+		4AB08B789A7F1A107E252817 /* maceta_normal.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = maceta_normal.png; sourceTree = "<group>"; };
+		4CEE5C33E0092251A134D8C5 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		4D16BA48721527B25B636DF1 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
+		541A330DC564BC78B3000971 /* Runner.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
+		62033C16D82E05978B8705E9 /* PomodoroWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PomodoroWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		65ED2F756AC8360D58C13FF3 /* fase2_planta_joven.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = fase2_planta_joven.png; sourceTree = "<group>"; };
+		7140B5B63A711ECBD0813950 /* PomodoroWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PomodoroWidget.swift; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterGeneratedPluginSwiftPackage; path = Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
+		7E085E61FB917D812BAD876B /* Pods-PomodoroWidget.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-PomodoroWidget.release.xcconfig"; path = "Target Support Files/Pods-PomodoroWidget/Pods-PomodoroWidget.release.xcconfig"; sourceTree = "<group>"; };
+		7F92430AA813685B231425C9 /* fase1_sakura_brote.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = fase1_sakura_brote.png; sourceTree = "<group>"; };
+		82136A802F43DE16582576DD /* fase3_rosa_capullo.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = fase3_rosa_capullo.png; sourceTree = "<group>"; };
+		8B5CCC30D6E579D219D9C751 /* fase1_rosa_brote.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = fase1_rosa_brote.png; sourceTree = "<group>"; };
+		8E55A332BA1439CAC9BC9950 /* fase3_planta_madura.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = fase3_planta_madura.png; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
 		97C146EE1CF9000F007C117D /* Runner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -56,27 +121,81 @@
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterGeneratedPluginSwiftPackage; path = Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage; sourceTree = "<group>"; };
+		A2C9E4A5B5BFE6E969E59C38 /* PomodoroWidget.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = PomodoroWidget.entitlements; sourceTree = "<group>"; };
+		AD9499BF3A23CD43C9D3F576 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
+		AF2C752645903F511F7AE065 /* maceta_volcanica.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = maceta_volcanica.png; sourceTree = "<group>"; };
+		B0DFBCA48B9B685C135587A8 /* PomodoroWidgetBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PomodoroWidgetBundle.swift; sourceTree = "<group>"; };
+		BEA28D9872055F406D11B791 /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		C002FBCF5DCA700807C238C1 /* maceta_japonesa.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = maceta_japonesa.png; sourceTree = "<group>"; };
+		C6B1A1C2B2305830ACACE55C /* Pods_PomodoroWidget.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_PomodoroWidget.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		C983AF783A35850568D3945E /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		D907A9EDBB50BC65A188EDD2 /* Pods-PomodoroWidget.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-PomodoroWidget.debug.xcconfig"; path = "Target Support Files/Pods-PomodoroWidget/Pods-PomodoroWidget.debug.xcconfig"; sourceTree = "<group>"; };
+		E42F9AB836024933F2C57639 /* fase3_sakura_capullo.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = fase3_sakura_capullo.png; sourceTree = "<group>"; };
+		E773866D83B96695D1B0A198 /* maceta_dorada.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = maceta_dorada.png; sourceTree = "<group>"; };
+		EECF856744605B0DBCB689B2 /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
+		F3C82C28F4FE3F08E506F521 /* fase4_planta_frondosa.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = fase4_planta_frondosa.png; sourceTree = "<group>"; };
+		F5ECF61B7B09C802ABA841B8 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
+		FC7ED12ED40380D3607C7103 /* fase1_plantula.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = fase1_plantula.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		3E53BC9B829BD003CE03C62B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD34FEE50852FE7B1F922708 /* Pods_RunnerTests.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		71AC48DF2F52245E9C0AEE87 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				963B42033A7DB96C22C3B252 /* Foundation.framework in Frameworks */,
+				4D53F31B9C4469449F9D64E2 /* WidgetKit.framework in Frameworks */,
+				BE533934BAA9B30915349847 /* SwiftUI.framework in Frameworks */,
+				7895D6BACAF1E40D27AE00CE /* Pods_PomodoroWidget.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		97C146EB1CF9000F007C117D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */,
+				BC7049356D22C3B687C855D9 /* Pods_Runner.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		302DD078060D52CBBA35FA75 /* PomodoroWidget */ = {
+			isa = PBXGroup;
+			children = (
+				B0DFBCA48B9B685C135587A8 /* PomodoroWidgetBundle.swift */,
+				7140B5B63A711ECBD0813950 /* PomodoroWidget.swift */,
+				FAA2BCD3A1AA20C7A8B29375 /* Images */,
+				A2C9E4A5B5BFE6E969E59C38 /* PomodoroWidget.entitlements */,
+			);
+			name = PomodoroWidget;
+			path = PomodoroWidget;
+			sourceTree = "<group>";
+		};
 		331C8082294A63A400263BE5 /* RunnerTests */ = {
 			isa = PBXGroup;
 			children = (
 				331C807B294A618700263BE5 /* RunnerTests.swift */,
 			);
 			path = RunnerTests;
+			sourceTree = "<group>";
+		};
+		62FF8C1256462B94CDC6415E /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				4CEE5C33E0092251A134D8C5 /* Foundation.framework */,
+			);
+			name = iOS;
 			sourceTree = "<group>";
 		};
 		9740EEB11CF90186004384FC /* Flutter */ = {
@@ -98,6 +217,9 @@
 				97C146F01CF9000F007C117D /* Runner */,
 				97C146EF1CF9000F007C117D /* Products */,
 				331C8082294A63A400263BE5 /* RunnerTests */,
+				AFA5FECFE47AD54CB609FBC8 /* Pods */,
+				DD369473CE67801DB2F1203F /* Frameworks */,
+				302DD078060D52CBBA35FA75 /* PomodoroWidget */,
 			);
 			sourceTree = "<group>";
 		};
@@ -106,6 +228,7 @@
 			children = (
 				97C146EE1CF9000F007C117D /* Runner.app */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
+				62033C16D82E05978B8705E9 /* PomodoroWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -121,8 +244,63 @@
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
+				541A330DC564BC78B3000971 /* Runner.entitlements */,
 			);
 			path = Runner;
+			sourceTree = "<group>";
+		};
+		AFA5FECFE47AD54CB609FBC8 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				F5ECF61B7B09C802ABA841B8 /* Pods-Runner.debug.xcconfig */,
+				AD9499BF3A23CD43C9D3F576 /* Pods-Runner.release.xcconfig */,
+				4D16BA48721527B25B636DF1 /* Pods-Runner.profile.xcconfig */,
+				4A7C6836A23163BA32CD6C3E /* Pods-RunnerTests.debug.xcconfig */,
+				EECF856744605B0DBCB689B2 /* Pods-RunnerTests.release.xcconfig */,
+				1C11D966E8C11FD163C5C4D3 /* Pods-RunnerTests.profile.xcconfig */,
+				7E085E61FB917D812BAD876B /* Pods-PomodoroWidget.release.xcconfig */,
+				D907A9EDBB50BC65A188EDD2 /* Pods-PomodoroWidget.debug.xcconfig */,
+				1A4D5DD1E0EA6F666B6E07F8 /* Pods-PomodoroWidget.profile.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
+			sourceTree = "<group>";
+		};
+		DD369473CE67801DB2F1203F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				BEA28D9872055F406D11B791 /* Pods_Runner.framework */,
+				C983AF783A35850568D3945E /* Pods_RunnerTests.framework */,
+				62FF8C1256462B94CDC6415E /* iOS */,
+				1E621341381DA9BB58279488 /* WidgetKit.framework */,
+				1BE7DC5FDB494B8034A47915 /* SwiftUI.framework */,
+				C6B1A1C2B2305830ACACE55C /* Pods_PomodoroWidget.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		FAA2BCD3A1AA20C7A8B29375 /* Images */ = {
+			isa = PBXGroup;
+			children = (
+				FC7ED12ED40380D3607C7103 /* fase1_plantula.png */,
+				8B5CCC30D6E579D219D9C751 /* fase1_rosa_brote.png */,
+				7F92430AA813685B231425C9 /* fase1_sakura_brote.png */,
+				65ED2F756AC8360D58C13FF3 /* fase2_planta_joven.png */,
+				0A06F0453FA61C0C8175A2B0 /* fase2_rosa_vastago.png */,
+				09471D1057DC2478B1CDAEA7 /* fase2_sakura_rama.png */,
+				8E55A332BA1439CAC9BC9950 /* fase3_planta_madura.png */,
+				82136A802F43DE16582576DD /* fase3_rosa_capullo.png */,
+				E42F9AB836024933F2C57639 /* fase3_sakura_capullo.png */,
+				F3C82C28F4FE3F08E506F521 /* fase4_planta_frondosa.png */,
+				238AF6F59A2AE3929596F423 /* fase4_rosa_floripondio.png */,
+				41ECFA54CCDA9DAADC07FFAB /* fase4_sakura_plena.png */,
+				E773866D83B96695D1B0A198 /* maceta_dorada.png */,
+				C002FBCF5DCA700807C238C1 /* maceta_japonesa.png */,
+				4AB08B789A7F1A107E252817 /* maceta_normal.png */,
+				AF2C752645903F511F7AE065 /* maceta_volcanica.png */,
+			);
+			name = Images;
+			path = Images;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -132,8 +310,10 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 331C8087294A63A400263BE5 /* Build configuration list for PBXNativeTarget "RunnerTests" */;
 			buildPhases = (
+				862423C1E29F08F6560015E3 /* [CP] Check Pods Manifest.lock */,
 				331C807D294A63A400263BE5 /* Sources */,
 				331C807F294A63A400263BE5 /* Resources */,
+				3E53BC9B829BD003CE03C62B /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -145,25 +325,47 @@
 			productReference = 331C8081294A63A400263BE5 /* RunnerTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		97C146ED1CF9000F007C117D /* Runner */ = {
-			packageProductDependencies = (
-				78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */,
-			);
+		81879A578434D16D693588FE /* PomodoroWidget */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 97C147051CF9000F007C117D /* Build configuration list for PBXNativeTarget "Runner" */;
+			buildConfigurationList = DDA4775BF7D90B85ED537A9D /* Build configuration list for PBXNativeTarget "PomodoroWidget" */;
 			buildPhases = (
-				9740EEB61CF901F6004384FC /* Run Script */,
-				97C146EA1CF9000F007C117D /* Sources */,
-				97C146EB1CF9000F007C117D /* Frameworks */,
-				97C146EC1CF9000F007C117D /* Resources */,
-				9705A1C41CF9048500538489 /* Embed Frameworks */,
-				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
+				6A4E2DBC0E78129B8975B432 /* [CP] Check Pods Manifest.lock */,
+				3E853F3BC8E2D42CEA54F0EF /* Sources */,
+				71AC48DF2F52245E9C0AEE87 /* Frameworks */,
+				0BCC1DE54A4396F6520B82FB /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
+			name = PomodoroWidget;
+			productName = PomodoroWidget;
+			productReference = 62033C16D82E05978B8705E9 /* PomodoroWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		97C146ED1CF9000F007C117D /* Runner */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 97C147051CF9000F007C117D /* Build configuration list for PBXNativeTarget "Runner" */;
+			buildPhases = (
+				5B2A888BE4C96964CD15C00C /* [CP] Check Pods Manifest.lock */,
+				9740EEB61CF901F6004384FC /* Run Script */,
+				97C146EA1CF9000F007C117D /* Sources */,
+				97C146EB1CF9000F007C117D /* Frameworks */,
+				97C146EC1CF9000F007C117D /* Resources */,
+				9705A1C41CF9048500538489 /* Embed Frameworks */,
+				75F360C35812F518AB68A161 /* Embed App Extensions */,
+				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
+				867514FF9E9CEBD41641D4EC /* [CP] Embed Pods Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DA5F5D08DB49C2EFF66BD660 /* PBXTargetDependency */,
+			);
 			name = Runner;
+			packageProductDependencies = (
+				78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */,
+			);
 			productName = Runner;
 			productReference = 97C146EE1CF9000F007C117D /* Runner.app */;
 			productType = "com.apple.product-type.application";
@@ -172,9 +374,6 @@
 
 /* Begin PBXProject section */
 		97C146E61CF9000F007C117D /* Project object */ = {
-			packageReferences = (
-				781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage" */,
-			);
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
@@ -200,17 +399,44 @@
 				Base,
 			);
 			mainGroup = 97C146E51CF9000F007C117D;
+			packageReferences = (
+				781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "FlutterGeneratedPluginSwiftPackage" */,
+			);
 			productRefGroup = 97C146EF1CF9000F007C117D /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				97C146ED1CF9000F007C117D /* Runner */,
 				331C8080294A63A400263BE5 /* RunnerTests */,
+				81879A578434D16D693588FE /* PomodoroWidget */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		0BCC1DE54A4396F6520B82FB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5FF04F056D057EE15C6FF41B /* fase1_plantula.png in Resources */,
+				8A1B87461CF46B0FAA63BC85 /* fase1_rosa_brote.png in Resources */,
+				64C7E3DCEEAA403A369DB9D6 /* fase1_sakura_brote.png in Resources */,
+				CB7CF8ECB9E1836382E5F281 /* fase2_planta_joven.png in Resources */,
+				9D30BE7B9687FEEA36A02A24 /* fase2_rosa_vastago.png in Resources */,
+				9764315B49D879DC6FD79068 /* fase2_sakura_rama.png in Resources */,
+				8BBEE933DA24FF561153E078 /* fase3_planta_madura.png in Resources */,
+				B8E436947FC14A76A7DC255B /* fase3_rosa_capullo.png in Resources */,
+				B876B5FDD04142D4742DE307 /* fase3_sakura_capullo.png in Resources */,
+				B27689413430CA99D7E7B412 /* fase4_planta_frondosa.png in Resources */,
+				85761046FBBEACEA5C3E9876 /* fase4_rosa_floripondio.png in Resources */,
+				9C212E8FE188654393439A63 /* fase4_sakura_plena.png in Resources */,
+				43766EA674D5B1647540DE18 /* maceta_dorada.png in Resources */,
+				8F78026BACE41CCADCF902E1 /* maceta_japonesa.png in Resources */,
+				6843C345FFCFA1B6019DFD3B /* maceta_normal.png in Resources */,
+				9E8F125CAE05A5E923E52A46 /* maceta_volcanica.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		331C807F294A63A400263BE5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -248,6 +474,89 @@
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
 		};
+		5B2A888BE4C96964CD15C00C /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-Runner-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		6A4E2DBC0E78129B8975B432 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-PomodoroWidget-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		862423C1E29F08F6560015E3 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-RunnerTests-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		867514FF9E9CEBD41641D4EC /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 		9740EEB61CF901F6004384FC /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -274,6 +583,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		3E853F3BC8E2D42CEA54F0EF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				49686D0A311C85713A00D913 /* PomodoroWidgetBundle.swift in Sources */,
+				AA228E7700BF168C6EB25FBF /* PomodoroWidget.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		97C146EA1CF9000F007C117D /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -290,6 +608,12 @@
 			isa = PBXTargetDependency;
 			target = 97C146ED1CF9000F007C117D /* Runner */;
 			targetProxy = 331C8085294A63A400263BE5 /* PBXContainerItemProxy */;
+		};
+		DA5F5D08DB49C2EFF66BD660 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = PomodoroWidget;
+			target = 81879A578434D16D693588FE /* PomodoroWidget */;
+			targetProxy = 6D96305AD17D980D362E6FC4 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -313,6 +637,32 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		10BDD767836755935128F9FB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D907A9EDBB50BC65A188EDD2 /* Pods-PomodoroWidget.debug.xcconfig */;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = PomodoroWidget/PomodoroWidget.entitlements;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_BITCODE = NO;
+				GENERATE_INFOPLIST_KEY_CFBundleDisplayName = "Planta Pomodoro";
+				INFOPLIST_FILE = PomodoroWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.miAppUniversitaria.PomodoroWidget;
+				PRODUCT_NAME = PomodoroWidget;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
 		249021D3217E4FDB00AE95B9 /* Profile */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -356,7 +706,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
@@ -371,6 +721,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
@@ -388,6 +739,7 @@
 		};
 		331C8088294A63A400263BE5 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 4A7C6836A23163BA32CD6C3E /* Pods-RunnerTests.debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -405,6 +757,7 @@
 		};
 		331C8089294A63A400263BE5 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = EECF856744605B0DBCB689B2 /* Pods-RunnerTests.release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -420,6 +773,7 @@
 		};
 		331C808A294A63A400263BE5 /* Profile */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 1C11D966E8C11FD163C5C4D3 /* Pods-RunnerTests.profile.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -432,6 +786,33 @@
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
 			};
 			name = Profile;
+		};
+		7F40514C8AB7B7F84383BF0C /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7E085E61FB917D812BAD876B /* Pods-PomodoroWidget.release.xcconfig */;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = PomodoroWidget/PomodoroWidget.entitlements;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_BITCODE = NO;
+				GENERATE_INFOPLIST_KEY_CFBundleDisplayName = "Planta Pomodoro";
+				INFOPLIST_FILE = PomodoroWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.miAppUniversitaria.PomodoroWidget;
+				PRODUCT_NAME = PomodoroWidget;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
 		};
 		97C147031CF9000F007C117D /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -482,7 +863,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -533,7 +914,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
@@ -550,6 +931,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
@@ -572,6 +954,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
@@ -586,6 +969,33 @@
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Release;
+		};
+		EDEAA5B75A5B550EDB1BD87B /* Profile */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 1A4D5DD1E0EA6F666B6E07F8 /* Pods-PomodoroWidget.profile.xcconfig */;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = PomodoroWidget/PomodoroWidget.entitlements;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_BITCODE = NO;
+				GENERATE_INFOPLIST_KEY_CFBundleDisplayName = "Planta Pomodoro";
+				INFOPLIST_FILE = PomodoroWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.miAppUniversitaria.PomodoroWidget;
+				PRODUCT_NAME = PomodoroWidget;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Profile;
 		};
 /* End XCBuildConfiguration section */
 
@@ -620,13 +1030,25 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		DDA4775BF7D90B85ED537A9D /* Build configuration list for PBXNativeTarget "PomodoroWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7F40514C8AB7B7F84383BF0C /* Release */,
+				10BDD767836755935128F9FB /* Debug */,
+				EDEAA5B75A5B550EDB1BD87B /* Profile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
+
 /* Begin XCLocalSwiftPackageReference section */
-		781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage" */ = {
+		781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "FlutterGeneratedPluginSwiftPackage" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage;
 		};
 /* End XCLocalSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */ = {
 			isa = XCSwiftPackageProductDependency;

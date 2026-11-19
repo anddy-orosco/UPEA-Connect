@@ -8,6 +8,7 @@ import '../widgets/growing_plant_widget.dart';
 import 'focus_store_screen.dart';
 import 'analytics_screen.dart';
 import '../widgets/pomodoro_home_widget_preview.dart';
+import '../services/widget_sync_service.dart';
 
 class PomodoroScreen extends StatefulWidget {
   const PomodoroScreen({super.key});
@@ -115,6 +116,14 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
         _equippedSpecies = species;
         _equippedDecoration = decoration;
       });
+
+      // Sincronizar automáticamente con el widget de la pantalla de inicio
+      WidgetSyncService.syncWidgetData(
+        species: species,
+        pot: pot,
+        progress: active?.plantProgress ?? 0.0,
+        subjectName: active?.name ?? 'Enfoque UPEA',
+      );
     }
   }
 
@@ -630,11 +639,17 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                           ),
                           IconButton(
                             icon: const Icon(Icons.widgets_rounded, color: Colors.white, size: 26),
-                            tooltip: 'Vista Previa Home Widget',
+                            tooltip: 'Widget de Pantalla de Inicio',
                             onPressed: () {
                               showDialog(
                                 context: context,
-                                builder: (context) => const PomodoroHomeWidgetPreviewModal(),
+                                builder: (context) => PomodoroHomeWidgetPreviewModal(
+                                  equippedSpecies: _equippedSpecies,
+                                  equippedPot: _equippedPot,
+                                  equippedDecoration: _equippedDecoration,
+                                  progress: displayProgress,
+                                  subjectName: _activeSubject?.name,
+                                ),
                               );
                             },
                           ),

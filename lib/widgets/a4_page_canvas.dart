@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/note_page_model.dart';
 
-class A4PageCanvas extends StatelessWidget {
+class A4PageCanvas extends StatefulWidget {
   final NotePageModel pageModel;
   final TextEditingController textController;
   final double fontSize;
@@ -24,73 +24,125 @@ class A4PageCanvas extends StatelessWidget {
   });
 
   @override
+  State<A4PageCanvas> createState() => _A4PageCanvasState();
+}
+
+class _A4PageCanvasState extends State<A4PageCanvas> {
+  final FocusNode _sheetFocusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _sheetFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Center(
-      child: AspectRatio(
-        aspectRatio: 1 / 1.4142,
-        child: Container(
-          margin: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 10,
-                spreadRadius: 2,
-                offset: Offset(0, 4),
-              ),
-            ],
+    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // El ancho de la hoja se calcula en base al ancho horizontal disponible,
+        // el cual NUNCA se reduce al desplegarse el teclado.
+        // Restamos 32px para márgenes laterales y aplicamos un clamp para pantallas grandes/tablets.
+        final double availableWidth = constraints.maxWidth;
+        final double sheetWidth = (availableWidth - 32).clamp(280.0, 650.0);
+        // Proporción estándar A4 internacional (1 : 1.4142)
+        final double sheetHeight = sheetWidth * 1.4142;
+
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.only(
+            top: 16,
+            bottom: isKeyboardOpen ? 120 : 24, // Espacio extra inferior para escribir cómodamente sobre el teclado
           ),
-          child: Stack(
-            children: [
-              // Texto principal
-              Padding(
-                padding: const EdgeInsets.all(28.0),
-                child: TextField(
-                  controller: textController,
-                  maxLines: null,
-                  keyboardType: TextInputType.multiline,
-                  textAlign: textAlign,
-                  style: TextStyle(
-                    fontSize: fontSize,
-                    fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-                    fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
-                    height: 1.5,
-                  ),
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    hintText: 'Comienza a escribir tus apuntes aquí...',
-                  ),
-                  onChanged: (val) {
-                    pageModel.textContent = val;
-                    onChanged(val);
-                  },
+          child: Center(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                // Si el usuario toca cualquier área vacía de la hoja, enfocamos el editor principal
+                if (!_sheetFocusNode.hasFocus) {
+                  _sheetFocusNode.requestFocus();
+                }
+              },
+              child: Container(
+                width: sheetWidth,
+                constraints: BoxConstraints(minHeight: sheetHeight),
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // Texto principal
+                    Padding(
+                      padding: const EdgeInsets.all(28.0),
+                      child: TextField(
+                        controller: widget.textController,
+                        focusNode: _sheetFocusNode,
+                        maxLines: null,
+                        keyboardType: TextInputType.multiline,
+                        textAlign: widget.textAlign,
+                        style: TextStyle(
+                          fontSize: widget.fontSize,
+                          fontWeight: widget.isBold ? FontWeight.bold : FontWeight.normal,
+                          fontStyle: widget.isItalic ? FontStyle.italic : FontStyle.normal,
+                          height: 1.5,
+                          color: Colors.black87,
+                        ),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: 'Comienza a escribir tus apuntes aquí...',
+                          hintStyle: TextStyle(color: Colors.black38),
+                        ),
+                        onChanged: (val) {
+                          widget.pageModel.textContent = val;
+                          widget.onChanged(val);
+                        },
+                      ),
+                    ),
+                    // Elementos flotantes redimensionables
+                    ...widget.pageModel.floatingElements.map((elem) {
+                      return _ResizableFloatingWidget(
+                        key: ValueKey(elem.id),
+                        elem: elem,
+                        sheetWidth: sheetWidth,
+                        sheetHeight: sheetHeight,
+                        onChanged: () => widget.onChanged(widget.textController.text),
+                      );
+                    }),
+                  ],
                 ),
               ),
-              // Elementos flotantes redimensionables
-              ...pageModel.floatingElements.map((elem) {
-                return _ResizableFloatingWidget(
-                  key: ValueKey(elem.id),
-                  elem: elem,
-                  onChanged: () => onChanged(textController.text),
-                );
-              }),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
 
 class _ResizableFloatingWidget extends StatefulWidget {
   final FloatingElement elem;
+  final double sheetWidth;
+  final double sheetHeight;
   final VoidCallback onChanged;
 
   const _ResizableFloatingWidget({
     super.key,
     required this.elem,
+    required this.sheetWidth,
+    required this.sheetHeight,
     required this.onChanged,
   });
 
@@ -108,6 +160,14 @@ class _ResizableFloatingWidgetState extends State<_ResizableFloatingWidget> {
   }
 
   @override
+  void didUpdateWidget(covariant _ResizableFloatingWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.elem.text != _controller.text) {
+      _controller.text = widget.elem.text;
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -119,11 +179,16 @@ class _ResizableFloatingWidgetState extends State<_ResizableFloatingWidget> {
       left: widget.elem.position.dx,
       top: widget.elem.position.dy,
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
           GestureDetector(
             onPanUpdate: (details) {
               setState(() {
-                widget.elem.position += details.delta;
+                final double maxX = (widget.sheetWidth - 40.0).clamp(0.0, double.infinity);
+                final double maxY = (widget.sheetHeight - 40.0).clamp(0.0, double.infinity);
+                final double newX = (widget.elem.position.dx + details.delta.dx).clamp(0.0, maxX);
+                final double newY = (widget.elem.position.dy + details.delta.dy).clamp(0.0, maxY);
+                widget.elem.position = Offset(newX, newY);
               });
               widget.onChanged();
             },
@@ -194,8 +259,8 @@ class _ResizableFloatingWidgetState extends State<_ResizableFloatingWidget> {
             child: GestureDetector(
               onPanUpdate: (details) {
                 setState(() {
-                  widget.elem.width = (widget.elem.width + details.delta.dx).clamp(80.0, 500.0);
-                  widget.elem.height = (widget.elem.height + details.delta.dy).clamp(50.0, 500.0);
+                  widget.elem.width = (widget.elem.width + details.delta.dx).clamp(80.0, widget.sheetWidth);
+                  widget.elem.height = (widget.elem.height + details.delta.dy).clamp(50.0, widget.sheetHeight);
                 });
                 widget.onChanged();
               },

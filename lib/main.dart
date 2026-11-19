@@ -15,9 +15,17 @@ import 'screens/focus_store_screen.dart';
 import 'services/notification_service.dart';
 import 'services/theme_service.dart';
 import 'services/connectivity_service.dart';
+import 'services/widget_sync_service.dart';
+import 'services/noticias_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicializar Supabase para el Noticiero (seguro, no bloquea si no hay conexión)
+  await NoticiasService.initializeSupabase();
+
+  // Inicializar servicio de sincronización de widgets (iOS / Android)
+  await WidgetSyncService.init();
 
   // Empezar a vigilar si hay conexión con el backend (modo sin conexión)
   ConnectivityService.instance.start();

@@ -21,6 +21,7 @@ import 'chat_screen.dart';
 import 'login_screen.dart';
 import 'documents_screen.dart';
 import 'maps_screen.dart'; // <--- Importación de tu módulo de mapa interactivo
+import 'noticias/noticias_screen.dart'; // <--- Módulo Oficial de Noticias UPEA (Supabase)
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -174,6 +175,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return 'Bóveda de Documentos';
       case 9:
         return 'Mapa Torre Tecnológica UPEA'; // <--- Título de tu mapa interactivo
+      case 10:
+        return 'Noticiero Sistemas UPEA';
       default:
         return 'Inicio';
     }
@@ -222,6 +225,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return const DocumentsScreen();
       case 9:
         return const BuildingMapScreen(); // <--- Renderizado de tu pantalla de mapas
+      case 10:
+        return const NoticiasScreen(); // <--- Renderizado de Noticiero Sistemas (Supabase)
       default:
         return _buildHomeContent();
     }
