@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
@@ -28,32 +27,38 @@ class NotesService {
 
   static Map<String, dynamic> _floatingElementToBackendJson(
       FloatingElement el) {
+    String textToSend = el.text;
+    if (el.elementType == FloatingElementType.examAlert) {
+      textToSend = '⚠️ [OJO EXAMEN]\n${el.text}';
+    } else if (el.elementType == FloatingElementType.codeSnippet) {
+      final lang = el.language ?? 'codigo';
+      textToSend = '```$lang\n${el.text}\n```';
+    }
+
     return {
       'type': el.isImage ? 'IMAGE' : 'TEXT',
       'positionX': el.position.dx,
       'positionY': el.position.dy,
       'width': el.width,
       'height': el.height,
-      'text': el.text,
+      'text': textToSend,
       if (el.isImage && el.imagePath != null) 'imageUrl': el.imagePath,
     };
   }
 
   static FloatingElement _floatingElementFromBackendJson(
       Map<String, dynamic> json) {
-    return FloatingElement(
-      id: json['id']?.toString() ??
+    return FloatingElement.fromJson({
+      'id': json['id']?.toString() ??
           DateTime.now().millisecondsSinceEpoch.toString(),
-      position: Offset(
-        (json['positionX'] as num?)?.toDouble() ?? 0.0,
-        (json['positionY'] as num?)?.toDouble() ?? 0.0,
-      ),
-      width: (json['width'] as num?)?.toDouble() ?? 180.0,
-      height: (json['height'] as num?)?.toDouble() ?? 140.0,
-      text: json['text'] ?? '',
-      isImage: json['type'] == 'IMAGE',
-      imagePath: json['imageUrl'],
-    );
+      'dx': json['positionX'],
+      'dy': json['positionY'],
+      'width': json['width'],
+      'height': json['height'],
+      'text': json['text'] ?? '',
+      'isImage': json['type'] == 'IMAGE',
+      'imagePath': json['imageUrl'],
+    });
   }
 
   static NotePageModel _pageFromBackendJson(Map<String, dynamic> json) {

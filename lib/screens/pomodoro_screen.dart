@@ -101,6 +101,9 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
             (s) => s.id == activeId,
         orElse: () => subjects.first,
       );
+      if (activeId != active.id) {
+        await _focusService.setActiveSubjectId(active.id);
+      }
     }
 
     final pot = active?.equippedPot ?? await _focusService.getEquippedPot();
@@ -118,11 +121,15 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
       });
 
       // Sincronizar automáticamente con el widget de la pantalla de inicio
+      final streak = await _focusService.getStreak();
+      final studiedToday = await _focusService.hasStudiedToday();
       WidgetSyncService.syncWidgetData(
         species: species,
         pot: pot,
         progress: active?.plantProgress ?? 0.0,
         subjectName: active?.name ?? 'Enfoque UPEA',
+        streak: streak,
+        studiedToday: studiedToday,
       );
     }
   }
@@ -433,12 +440,14 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
               onPressed: () async {
                 if (controller.text.trim().isNotEmpty) {
                   final formattedName = _capitalize(controller.text.trim());
+                  final currentSpecies = await _focusService.getEquippedSpecies();
+                  final currentPot = await _focusService.getEquippedPot();
                   final newSub = SubjectModel(
                     id: DateTime.now().millisecondsSinceEpoch.toString(),
                     name: formattedName,
                     colorValue: selectedColor,
-                    equippedSpecies: 'sp_oak',
-                    equippedPot: 'pot_default',
+                    equippedSpecies: currentSpecies,
+                    equippedPot: currentPot,
                     plantProgress: 0.0,
                   );
                   await _focusService.saveSubject(newSub);
@@ -495,6 +504,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
     if (_isWorkMode && _activeSubject != null) {
       await _focusService.addCoins(25);
       await _focusService.addMinutesToSubject(_activeSubject!.id, 25);
+      await _focusService.registerStudySession(); // Registra racha de estudio diaria
 
       double newProgress = (_activeSubject!.plantProgress + 0.25).clamp(0.0, 1.0);
 
@@ -640,8 +650,8 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                           IconButton(
                             icon: const Icon(Icons.widgets_rounded, color: Colors.white, size: 26),
                             tooltip: 'Widget de Pantalla de Inicio',
-                            onPressed: () {
-                              showDialog(
+                            onPressed: () async {
+                              await showDialog(
                                 context: context,
                                 builder: (context) => PomodoroHomeWidgetPreviewModal(
                                   equippedSpecies: _equippedSpecies,
@@ -651,6 +661,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                                   subjectName: _activeSubject?.name,
                                 ),
                               );
+                              _loadData();
                             },
                           ),
                           const SizedBox(width: 4),

@@ -4,64 +4,132 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
-    android:padding="12dp"
-    android:background="@android:color/black"
+    android:padding="10dp"
+    android:background="@drawable/widget_background"
     android:gravity="center_vertical">
 
-    <LinearLayout
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:gravity="center"
-        android:orientation="vertical">
+    <!-- Contenedor izquierdo: Planta Viva con Arte Duolingo -->
+    <FrameLayout
+        android:layout_width="84dp"
+        android:layout_height="84dp"
+        android:background="@drawable/widget_plant_bg">
+
+        <ImageView
+            android:id="@+id/widget_plant_image"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitCenter"
+            android:padding="2dp"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/widget_emoji"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="center"
             android:text="🪴"
             android:textSize="36sp" />
-    </LinearLayout>
+    </FrameLayout>
 
+    <!-- Contenedor derecho: Información Dinámica, Racha y Progreso -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="10dp"
         android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/widget_title"
-            android:layout_width="wrap_content"
+        <!-- Fila Superior: Badge de Racha Duolingo + Estado Diario -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="UPEA Pomodoro"
-            android:textColor="#FFFFFF"
-            android:textSize="13sp"
-            android:textStyle="bold" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
+            <TextView
+                android:id="@+id/widget_streak"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/widget_streak_badge"
+                android:paddingStart="7dp"
+                android:paddingEnd="7dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:text="🔥 1 DÍA"
+                android:textColor="#FF9600"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/widget_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/widget_status_badge_pending"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:text="⚡ HOY"
+                android:textColor="#FFC800"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Título de la Materia -->
         <TextView
             android:id="@+id/widget_subject"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Cálculo I • Enfoque"
-            android:textColor="#CCCCCC"
-            android:textSize="11sp" />
+            android:layout_marginTop="3dp"
+            android:text="Enfoque UPEA"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:singleLine="true" />
 
+        <!-- Mensaje Motivacional Dinámico al estilo Duolingo -->
         <TextView
-            android:id="@+id/widget_streak"
+            android:id="@+id/widget_motivation"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="🔥 3 Días de Racha"
-            android:textColor="#FF9600"
+            android:layout_marginTop="1dp"
+            android:text="🌱 ¡Tu planta tiene sed! Estudia hoy."
+            android:textColor="#A2B5BF"
             android:textSize="10sp"
-            android:textStyle="bold" />
+            android:maxLines="2" />
 
-        <ProgressBar
-            android:id="@+id/widget_progress_bar"
-            style="?android:attr/progressBarStyleHorizontal"
+        <!-- Fila de Progreso Duolingo: Barra verde + Porcentaje -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="6dp"
+            android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:max="100"
-            android:progress="65" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ProgressBar
+                android:id="@+id/widget_progress_bar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:progressDrawable="@drawable/widget_progress_bar_duolingo"
+                android:layout_width="0dp"
+                android:layout_height="6dp"
+                android:layout_weight="1"
+                android:max="100"
+                android:progress="25" />
+
+            <TextView
+                android:id="@+id/widget_progress_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="25%"
+                android:textColor="#58CC02"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

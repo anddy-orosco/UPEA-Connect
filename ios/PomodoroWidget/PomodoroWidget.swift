@@ -8,7 +8,10 @@ struct PomodoroEntry: TimelineEntry {
     let progress: Double
     let subject: String
     let streak: Int
+    let studiedToday: Bool
+    let statusText: String
     let phaseName: String
+    let motivation: String
     let plantImagePath: String?
 }
 
@@ -23,7 +26,10 @@ struct PomodoroTimelineProvider: TimelineProvider {
             progress: 0.65,
             subject: "Cálculo I",
             streak: 3,
+            studiedToday: true,
+            statusText: "✓ AL DÍA",
             phaseName: "Planta Madura",
+            motivation: "🌿 ¡Creciendo fuerte! Racha de 3 días.",
             plantImagePath: nil
         )
     }
@@ -44,10 +50,19 @@ struct PomodoroTimelineProvider: TimelineProvider {
         let defaults = UserDefaults(suiteName: appGroupId) ?? UserDefaults.standard
         let species = defaults.string(forKey: "species") ?? "sp_oak"
         let pot = defaults.string(forKey: "pot") ?? "pot_default"
-        let progress = defaults.object(forKey: "progress") != nil ? defaults.double(forKey: "progress") : 0.65
+        var progress: Double = 0.65
+        if let d = defaults.object(forKey: "progressDouble") as? Double {
+            progress = d
+        } else if let num = defaults.object(forKey: "progress") as? NSNumber {
+            let val = num.doubleValue
+            progress = val > 1.0 ? val / 100.0 : val
+        }
         let subject = defaults.string(forKey: "subject") ?? "Enfoque UPEA"
-        let streak = defaults.integer(forKey: "streak") > 0 ? defaults.integer(forKey: "streak") : 3
+        let streak = defaults.integer(forKey: "streak") > 0 ? defaults.integer(forKey: "streak") : 1
+        let studiedToday = defaults.bool(forKey: "studiedToday")
+        let statusText = defaults.string(forKey: "statusText") ?? (studiedToday ? "✓ AL DÍA" : "⚡ HOY")
         let phaseName = defaults.string(forKey: "phaseName") ?? "En Crecimiento"
+        let motivation = defaults.string(forKey: "motivation") ?? "🌱 ¡Tu brote tiene sed! Estudia hoy."
         let plantImagePath = defaults.string(forKey: "plant_graphic")
 
         return PomodoroEntry(
@@ -57,7 +72,10 @@ struct PomodoroTimelineProvider: TimelineProvider {
             progress: progress,
             subject: subject,
             streak: streak,
+            studiedToday: studiedToday,
+            statusText: statusText,
             phaseName: phaseName,
+            motivation: motivation,
             plantImagePath: plantImagePath
         )
     }
@@ -86,29 +104,29 @@ struct SmallWidgetView: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            // Cabecera: Racha y Badge UPEA
+            // Cabecera: Racha Duolingo y Chip de Estado
             HStack {
-                HStack(spacing: 2) {
+                HStack(spacing: 3) {
                     Text("🔥")
                         .font(.system(size: 10))
-                    Text("\(entry.streak) D")
+                    Text(entry.streak == 1 ? "1 D" : "\(entry.streak) D")
                         .font(.system(size: 9, weight: .black))
                         .foregroundColor(Color.orange)
                 }
-                .padding(.horizontal, 5)
+                .padding(.horizontal, 6)
                 .padding(.vertical, 2)
                 .background(Color.orange.opacity(0.2))
                 .cornerRadius(6)
 
                 Spacer()
 
-                Text("UPEA")
+                Text(entry.statusText)
                     .font(.system(size: 8, weight: .bold))
-                    .foregroundColor(Color(red: 0.35, green: 0.80, blue: 0.01))
-                    .padding(.horizontal, 4)
+                    .foregroundColor(entry.studiedToday ? Color(red: 0.35, green: 0.80, blue: 0.01) : Color.yellow)
+                    .padding(.horizontal, 5)
                     .padding(.vertical, 2)
-                    .background(Color(red: 0.35, green: 0.80, blue: 0.01).opacity(0.15))
-                    .cornerRadius(4)
+                    .background((entry.studiedToday ? Color(red: 0.35, green: 0.80, blue: 0.01) : Color.yellow).opacity(0.18))
+                    .cornerRadius(5)
             }
 
             Spacer(minLength: 0)
@@ -119,7 +137,7 @@ struct SmallWidgetView: View {
                 pot: entry.pot,
                 progress: entry.progress,
                 plantImagePath: entry.plantImagePath,
-                size: 70
+                size: 68
             )
 
             Spacer(minLength: 0)
@@ -129,7 +147,7 @@ struct SmallWidgetView: View {
                 HStack {
                     Text(entry.phaseName)
                         .font(.system(size: 8, weight: .medium))
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(.white.opacity(0.75))
                         .lineLimit(1)
                     Spacer()
                     Text("\(Int(entry.progress * 100))%")
@@ -151,7 +169,7 @@ struct SmallWidgetView: View {
                 .frame(height: 4)
             }
         }
-        .padding(11)
+        .padding(10)
     }
 }
 
@@ -166,15 +184,15 @@ struct MediumWidgetView: View {
                 RoundedRectangle(cornerRadius: 16)
                     .fill(
                         RadialGradient(
-                            colors: [Color(red: 0.35, green: 0.80, blue: 0.01).opacity(0.25), Color.white.opacity(0.02)],
+                            colors: [Color(red: 0.35, green: 0.80, blue: 0.01).opacity(0.22), Color.white.opacity(0.02)],
                             center: .center,
                             startRadius: 5,
-                            endRadius: 50
+                            endRadius: 55
                         )
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                            .stroke(Color.white.opacity(0.12), lineWidth: 1)
                     )
 
                 PlantGraphicView(
@@ -187,45 +205,56 @@ struct MediumWidgetView: View {
             }
             .frame(width: 105, height: 110)
 
-            // Panel derecho de estadísticas
-            VStack(alignment: .leading, spacing: 5) {
+            // Panel derecho estilo Duolingo
+            VStack(alignment: .leading, spacing: 4) {
+                // Fila Superior: Racha + Chip de Estado
                 HStack {
-                    Text(entry.subject)
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-
-                    Spacer()
-
                     HStack(spacing: 3) {
                         Text("🔥")
                             .font(.system(size: 10))
-                        Text("\(entry.streak) DÍAS")
-                            .font(.system(size: 9, weight: .black))
+                        Text(entry.streak == 1 ? "1 DÍA" : "\(entry.streak) DÍAS")
+                            .font(.system(size: 9.5, weight: .black))
                             .foregroundColor(Color.orange)
                     }
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.orange.opacity(0.2))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(Color.orange.opacity(0.22))
                     .cornerRadius(8)
+
+                    Spacer()
+
+                    Text(entry.statusText)
+                        .font(.system(size: 8.5, weight: .bold))
+                        .foregroundColor(entry.studiedToday ? Color(red: 0.35, green: 0.80, blue: 0.01) : Color.yellow)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2.5)
+                        .background((entry.studiedToday ? Color(red: 0.35, green: 0.80, blue: 0.01) : Color.yellow).opacity(0.18))
+                        .cornerRadius(6)
                 }
 
-                Text("🌱 \(getSpeciesDisplayName(entry.species)) • \(entry.phaseName)")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.white.opacity(0.75))
+                // Título de la Materia
+                Text(entry.subject)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.white)
                     .lineLimit(1)
+
+                // Mensaje Motivacional Dinámico Duolingo
+                Text(entry.motivation)
+                    .font(.system(size: 9.5, weight: .medium))
+                    .foregroundColor(.white.opacity(0.72))
+                    .lineLimit(2)
 
                 Spacer(minLength: 0)
 
-                // Barra de Progreso
+                // Barra de Progreso Duolingo
                 VStack(alignment: .leading, spacing: 3) {
                     HStack {
-                        Text("Crecimiento")
+                        Text(entry.phaseName)
                             .font(.system(size: 9, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(.white.opacity(0.65))
                         Spacer()
                         Text("\(Int(entry.progress * 100))%")
-                            .font(.system(size: 10, weight: .black))
+                            .font(.system(size: 9.5, weight: .black))
                             .foregroundColor(Color(red: 0.35, green: 0.80, blue: 0.01))
                     }
 
@@ -242,17 +271,7 @@ struct MediumWidgetView: View {
                     }
                     .frame(height: 5)
                 }
-
-                HStack(spacing: 4) {
-                    Image(systemName: "bolt.fill")
-                        .font(.system(size: 9))
-                        .foregroundColor(.yellow)
-                    Text("Toca para estudiar y regar")
-                        .font(.system(size: 8.5, weight: .medium))
-                        .foregroundColor(.white.opacity(0.65))
-                }
             }
-            .padding(.vertical, 4)
         }
         .padding(12)
     }
@@ -328,29 +347,40 @@ struct PlantGraphicView: View {
                     .scaledToFit()
                     .frame(width: size, height: size)
             } else {
-                // Prioridad 2: Dibujado de Maceta + Planta desde recursos del bundle
+                // Prioridad 2: Dibujado de Maceta + Planta desde recursos del bundle perfectamente unidas
                 ZStack(alignment: .bottom) {
+                    // Sombra sutil de base
+                    Ellipse()
+                        .fill(Color.black.opacity(0.32))
+                        .frame(width: size * 0.44, height: size * 0.08)
+                        .offset(y: size * 0.04)
+
+                    // Maceta
                     if let potImg = loadBundleImage(named: potImageName) {
                         Image(uiImage: potImg)
                             .resizable()
                             .scaledToFit()
-                            .frame(width: size * 0.60, height: size * 0.38)
-                            .offset(y: 2)
+                            .frame(width: size * 0.48, height: size * 0.48)
+                            .offset(y: size * 0.02)
                     } else {
                         Text("🪴")
                             .font(.system(size: size * 0.35))
                     }
 
+                    // Planta (con offset calibrado para que el tallo entre en la maceta)
                     if let plantImg = loadBundleImage(named: plantImageName) {
                         Image(uiImage: plantImg)
                             .resizable()
                             .scaledToFit()
-                            .frame(width: size * 0.80, height: size * 0.72)
-                            .offset(y: -size * 0.22)
+                            .frame(
+                                width: phase == 1 ? size * 0.52 : size * 0.78,
+                                height: phase == 1 ? size * 0.52 : size * 0.78
+                            )
+                            .offset(y: phase == 1 ? -size * 0.10 : -size * 0.06)
                     } else {
                         Text("🌿")
                             .font(.system(size: size * 0.50))
-                            .offset(y: -size * 0.18)
+                            .offset(y: -size * 0.10)
                     }
                 }
                 .frame(width: size, height: size)

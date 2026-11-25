@@ -178,7 +178,6 @@
 				FAA2BCD3A1AA20C7A8B29375 /* Images */,
 				A2C9E4A5B5BFE6E969E59C38 /* PomodoroWidget.entitlements */,
 			);
-			name = PomodoroWidget;
 			path = PomodoroWidget;
 			sourceTree = "<group>";
 		};
@@ -262,7 +261,6 @@
 				D907A9EDBB50BC65A188EDD2 /* Pods-PomodoroWidget.debug.xcconfig */,
 				1A4D5DD1E0EA6F666B6E07F8 /* Pods-PomodoroWidget.profile.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -299,7 +297,6 @@
 				4AB08B789A7F1A107E252817 /* maceta_normal.png */,
 				AF2C752645903F511F7AE065 /* maceta_volcanica.png */,
 			);
-			name = Images;
 			path = Images;
 			sourceTree = "<group>";
 		};
@@ -644,6 +641,7 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = PomodoroWidget/PomodoroWidget.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N5TQ77Z7K5;
 				ENABLE_BITCODE = NO;
 				GENERATE_INFOPLIST_KEY_CFBundleDisplayName = "Planta Pomodoro";
 				INFOPLIST_FILE = PomodoroWidget/Info.plist;
@@ -654,7 +652,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.miAppUniversitaria.PomodoroWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anddyorosco.upeaconnect.PomodoroWidget;
 				PRODUCT_NAME = PomodoroWidget;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -723,13 +721,14 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = N5TQ77Z7K5;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.miAppUniversitaria;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anddyorosco.upeaconnect;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -794,6 +793,7 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = PomodoroWidget/PomodoroWidget.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N5TQ77Z7K5;
 				ENABLE_BITCODE = NO;
 				GENERATE_INFOPLIST_KEY_CFBundleDisplayName = "Planta Pomodoro";
 				INFOPLIST_FILE = PomodoroWidget/Info.plist;
@@ -804,7 +804,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.miAppUniversitaria.PomodoroWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anddyorosco.upeaconnect.PomodoroWidget;
 				PRODUCT_NAME = PomodoroWidget;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -933,13 +933,14 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = N5TQ77Z7K5;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.miAppUniversitaria;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anddyorosco.upeaconnect;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -956,13 +957,14 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = N5TQ77Z7K5;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.miAppUniversitaria;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anddyorosco.upeaconnect;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -977,6 +979,7 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = PomodoroWidget/PomodoroWidget.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N5TQ77Z7K5;
 				ENABLE_BITCODE = NO;
 				GENERATE_INFOPLIST_KEY_CFBundleDisplayName = "Planta Pomodoro";
 				INFOPLIST_FILE = PomodoroWidget/Info.plist;
@@ -987,7 +990,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.miAppUniversitaria.PomodoroWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anddyorosco.upeaconnect.PomodoroWidget;
 				PRODUCT_NAME = PomodoroWidget;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;

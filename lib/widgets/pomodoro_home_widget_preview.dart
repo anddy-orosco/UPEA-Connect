@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../services/focus_service.dart';
 import '../services/widget_sync_service.dart';
+import 'potted_plant_view.dart';
 
 class PomodoroHomeWidgetPreviewModal extends StatefulWidget {
   final String equippedSpecies;
@@ -28,11 +30,28 @@ class _PomodoroHomeWidgetPreviewModalState extends State<PomodoroHomeWidgetPrevi
   int _selectedWidgetSize = 1;
   // Progreso interactivo para probar el crecimiento
   late double _previewProgress;
+  late String _activeSpecies;
+  late String _activePot;
 
   @override
   void initState() {
     super.initState();
-    _previewProgress = widget.progress.clamp(0.1, 1.0);
+    _previewProgress = widget.progress.clamp(0.0, 1.0);
+    _activeSpecies = widget.equippedSpecies;
+    _activePot = widget.equippedPot;
+
+    // Obtener en tiempo real la planta y maceta activas de FocusService
+    final focusService = FocusService();
+    focusService.getEquippedSpecies().then((sp) {
+      if (mounted && sp.isNotEmpty) {
+        setState(() => _activeSpecies = sp);
+      }
+    });
+    focusService.getEquippedPot().then((pt) {
+      if (mounted && pt.isNotEmpty) {
+        setState(() => _activePot = pt);
+      }
+    });
   }
 
   int get _currentPhase {
@@ -54,43 +73,6 @@ class _PomodoroHomeWidgetPreviewModalState extends State<PomodoroHomeWidgetPrevi
         return 'Floración Total';
       default:
         return 'En Crecimiento';
-    }
-  }
-
-  String _getPlantImagePath() {
-    switch (widget.equippedSpecies) {
-      case 'sp_rose':
-        if (_currentPhase == 1) return 'assets/images/fase1_rosa_brote.png';
-        if (_currentPhase == 2) return 'assets/images/fase2_rosa_vastago.png';
-        if (_currentPhase == 3) return 'assets/images/fase3_rosa_capullo.png';
-        return 'assets/images/fase4_rosa_floripondio.png';
-
-      case 'sp_sakura':
-        if (_currentPhase == 1) return 'assets/images/fase1_sakura_brote.png';
-        if (_currentPhase == 2) return 'assets/images/fase2_sakura_rama.png';
-        if (_currentPhase == 3) return 'assets/images/fase3_sakura_capullo.png';
-        return 'assets/images/fase4_sakura_plena.png';
-
-      case 'sp_oak':
-      default:
-        if (_currentPhase == 1) return 'assets/images/fase1_plantula.png';
-        if (_currentPhase == 2) return 'assets/images/fase2_planta_joven.png';
-        if (_currentPhase == 3) return 'assets/images/fase3_planta_madura.png';
-        return 'assets/images/fase4_planta_frondosa.png';
-    }
-  }
-
-  String _getPotImagePath() {
-    switch (widget.equippedPot) {
-      case 'pot_gold':
-        return 'assets/images/maceta_dorada.png';
-      case 'pot_japanese':
-        return 'assets/images/maceta_japonesa.png';
-      case 'pot_volcanic':
-        return 'assets/images/maceta_volcanica.png';
-      case 'pot_default':
-      default:
-        return 'assets/images/maceta_normal.png';
     }
   }
 
@@ -745,37 +727,17 @@ class _PomodoroHomeWidgetPreviewModalState extends State<PomodoroHomeWidgetPrevi
     );
   }
 
-  // Cuadro visual de la planta con su maceta real
+  // Cuadro visual de la planta con su maceta real (perfectamente unidas y calibradas)
   Widget _buildMiniPlantArt({required double width, required double height}) {
-    return SizedBox(
+    return PottedPlantView(
+      species: _activeSpecies,
+      pot: _activePot,
+      phase: _currentPhase,
       width: width,
       height: height,
-      child: Stack(
-        alignment: Alignment.center,
-        clipBehavior: Clip.none,
-        children: [
-          // Maceta
-          Positioned(
-            bottom: 2,
-            child: Image.asset(
-              _getPotImagePath(),
-              width: width * 0.62,
-              height: height * 0.38,
-              fit: BoxFit.contain,
-            ),
-          ),
-          // Planta
-          Positioned(
-            bottom: height * 0.22,
-            child: Image.asset(
-              _getPlantImagePath(),
-              width: width * 0.85,
-              height: height * 0.75,
-              fit: BoxFit.contain,
-            ),
-          ),
-        ],
-      ),
+      showShadow: true,
+      showAura: true,
+      showSparkles: true,
     );
   }
 
@@ -814,7 +776,7 @@ class _PomodoroHomeWidgetPreviewModalState extends State<PomodoroHomeWidgetPrevi
             ),
             child: Slider(
               value: _previewProgress,
-              min: 0.1,
+              min: 0.0,
               max: 1.0,
               onChanged: (val) => setState(() => _previewProgress = val),
             ),
@@ -1093,18 +1055,28 @@ class _PomodoroHomeWidgetPreviewModalState extends State<PomodoroHomeWidgetPrevi
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             ),
-            onPressed: () {
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
 
-              // Sincronizar inmediatamente el widget nativo con los valores probados
-              WidgetSyncService.syncWidgetData(
-                species: widget.equippedSpecies,
-                pot: widget.equippedPot,
+              // 1. Guardar la especie y maceta seleccionadas en FocusService
+              final focusService = FocusService();
+              await focusService.equipSpecies(_activeSpecies);
+              await focusService.equipPot(_activePot);
+              final streak = await focusService.getStreak();
+              final studiedToday = await focusService.hasStudiedToday();
+
+              // 2. Sincronizar inmediatamente el widget nativo con los valores probados
+              await WidgetSyncService.syncWidgetData(
+                species: _activeSpecies,
+                pot: _activePot,
                 progress: _previewProgress,
                 subjectName: widget.subjectName ?? 'Cálculo I',
+                streak: streak,
+                studiedToday: studiedToday,
               );
 
-              ScaffoldMessenger.of(context).showSnackBar(
+              messenger.showSnackBar(
                 const SnackBar(
                   content: Row(
                     children: [

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/plant_calibration.dart';
 
 // --- MODELO DE TIENDA Y EQUIPAMIENTO ---
 class PlantSpeciesItem {
@@ -20,25 +21,6 @@ final List<PlantSpeciesItem> availableSpeciesInShop = [
   const PlantSpeciesItem(id: 'sp_rose', name: 'Rosa Roja', price: 150, iconEmoji: '🌹'),
   const PlantSpeciesItem(id: 'sp_sakura', name: 'Cerezo Sakura', price: 250, iconEmoji: '🌸'),
 ];
-
-// --- ESTRUCTURA DE CONFIGURACIÓN DE CALIBRACIÓN ---
-class CalibrationData {
-  final double plantX;
-  final double plantY;
-  final double plantScale;
-  final double potX;
-  final double potY;
-  final double potScale;
-
-  const CalibrationData({
-    this.plantX = 0.0,
-    this.plantY = 0.0,
-    this.plantScale = 1.0,
-    this.potX = 0.0,
-    this.potY = 0.0,
-    this.potScale = 1.0,
-  });
-}
 
 // --- WIDGET PRINCIPAL ---
 class GrowingPlantWidget extends StatefulWidget {
@@ -78,122 +60,17 @@ class _GrowingPlantWidgetState extends State<GrowingPlantWidget> {
     return 1;
   }
 
-  String _getPlantImagePath() {
-    switch (widget.equippedSpecies) {
-      case 'sp_rose':
-        if (_currentPhase == 1) return 'assets/images/fase1_rosa_brote.png';
-        if (_currentPhase == 2) return 'assets/images/fase2_rosa_vastago.png';
-        if (_currentPhase == 3) return 'assets/images/fase3_rosa_capullo.png';
-        return 'assets/images/fase4_rosa_floripondio.png';
+  String _getPlantImagePath() =>
+      PlantCalibration.getPlantImagePath(widget.equippedSpecies, _currentPhase);
 
-      case 'sp_sakura':
-        if (_currentPhase == 1) return 'assets/images/fase1_sakura_brote.png';
-        if (_currentPhase == 2) return 'assets/images/fase2_sakura_rama.png';
-        if (_currentPhase == 3) return 'assets/images/fase3_sakura_capullo.png';
-        return 'assets/images/fase4_sakura_plena.png';
+  String _getPotImagePath() =>
+      PlantCalibration.getPotImagePath(widget.equippedPot);
 
-      case 'sp_oak':
-      default:
-        if (_currentPhase == 1) return 'assets/images/fase1_plantula.png';
-        if (_currentPhase == 2) return 'assets/images/fase2_planta_joven.png';
-        if (_currentPhase == 3) return 'assets/images/fase3_planta_madura.png';
-        return 'assets/images/fase4_planta_frondosa.png';
-    }
-  }
-
-  String _getPotImagePath() {
-    switch (widget.equippedPot) {
-      case 'pot_gold':
-        return 'assets/images/maceta_dorada.png';
-      case 'pot_japanese':
-        return 'assets/images/maceta_japonesa.png';
-      case 'pot_volcanic':
-        return 'assets/images/maceta_volcanica.png';
-      case 'pot_default':
-      default:
-        return 'assets/images/maceta_normal.png';
-    }
-  }
-
-  CalibrationData get _currentCalibration {
-    final species = widget.equippedSpecies;
-    final pot = widget.equippedPot;
-    final phase = _currentPhase;
-
-    if (species == 'sp_rose') {
-      if (pot == 'pot_default') {
-        if (phase == 1) return const CalibrationData(plantX: 1, plantY: -17, plantScale: 1.15);
-        if (phase == 2) return const CalibrationData(plantX: 0, plantY: -8, plantScale: 1.15);
-        if (phase == 3) return const CalibrationData(plantX: 0, plantY: -5, plantScale: 1.15);
-        if (phase == 4) return const CalibrationData(plantX: 0, plantY: -3, plantScale: 1.10);
-      } else if (pot == 'pot_gold') {
-        if (phase == 1) return const CalibrationData(plantX: 0, plantY: -15, plantScale: 1.20, potScale: 1.10);
-        if (phase == 2) return const CalibrationData(plantX: -2, plantY: 0, plantScale: 1.10, potScale: 1.10);
-        if (phase == 3) return const CalibrationData(plantX: -2, plantY: 4, plantScale: 1.10, potScale: 1.10);
-        if (phase == 4) return const CalibrationData(plantX: -2, plantY: 4, plantScale: 1.10, potScale: 1.10);
-      } else if (pot == 'pot_japanese') {
-        if (phase == 1) return const CalibrationData(plantX: 1, plantY: -26, plantScale: 1.35, potScale: 1.05);
-        if (phase == 2) return const CalibrationData(plantX: -1, plantY: -17, plantScale: 1.20);
-        if (phase == 3) return const CalibrationData(plantX: -1, plantY: -14, plantScale: 1.20);
-        if (phase == 4) return const CalibrationData(plantX: -1, plantY: -7, plantScale: 1.10);
-      } else if (pot == 'pot_volcanic') {
-        if (phase == 1) return const CalibrationData(plantX: 1, plantY: -18, plantScale: 1.15, potScale: 1.05);
-        if (phase == 2) return const CalibrationData(plantX: 1, plantY: -7, plantScale: 1.15, potScale: 1.05);
-        if (phase == 3) return const CalibrationData(plantX: 1, plantY: -4, plantScale: 1.15, potScale: 1.05);
-        if (phase == 4) return const CalibrationData(plantX: 1, plantY: -2, plantScale: 1.15, potScale: 1.05);
-      }
-    }
-
-    if (species == 'sp_sakura') {
-      if (pot == 'pot_default') {
-        if (phase == 1) return const CalibrationData(plantX: 0, plantY: -20, plantScale: 1.20);
-        if (phase == 2) return const CalibrationData(plantX: 0, plantY: -6, plantScale: 1.10);
-        if (phase == 3) return const CalibrationData(plantX: -1, plantY: -2, plantScale: 1.10);
-        if (phase == 4) return const CalibrationData(plantX: -1, plantY: -2, plantScale: 1.10);
-      } else if (pot == 'pot_gold') {
-        if (phase == 1) return const CalibrationData(plantX: 0, plantY: -20, plantScale: 1.10);
-        if (phase == 2) return const CalibrationData(plantX: 0, plantY: -9, plantScale: 1.10);
-        if (phase == 3) return const CalibrationData(plantX: 0, plantY: -4, plantScale: 1.10);
-        if (phase == 4) return const CalibrationData(plantX: 0, plantY: 0, plantScale: 1.05);
-      } else if (pot == 'pot_japanese') {
-        if (phase == 1) return const CalibrationData(plantX: 1, plantY: -30, plantScale: 1.35);
-        if (phase == 2) return const CalibrationData(plantX: 0, plantY: -20, plantScale: 1.25);
-        if (phase == 3) return const CalibrationData(plantX: 0, plantY: -13, plantScale: 1.20);
-        if (phase == 4) return const CalibrationData(plantX: 0, plantY: -13, plantScale: 1.20);
-      } else if (pot == 'pot_volcanic') {
-        if (phase == 1) return const CalibrationData(plantX: 1, plantY: -20, plantScale: 1.10);
-        if (phase == 2) return const CalibrationData(plantX: 1, plantY: -7, plantScale: 1.10);
-        if (phase == 3) return const CalibrationData(plantX: 1, plantY: -4, plantScale: 1.10);
-        if (phase == 4) return const CalibrationData(plantX: 1, plantY: 0, plantScale: 1.05);
-      }
-    }
-
-    if (species == 'sp_oak') {
-      if (pot == 'pot_default') {
-        if (phase == 1) return const CalibrationData(plantX: 0, plantY: -4, plantScale: 1.10);
-        if (phase == 2) return const CalibrationData(plantX: -1, plantY: -7, plantScale: 1.10);
-        if (phase == 3) return const CalibrationData(plantX: 0, plantY: -12, plantScale: 1.15);
-        if (phase == 4) return const CalibrationData(plantX: 1, plantY: -12, plantScale: 1.15);
-      } else if (pot == 'pot_gold') {
-        if (phase == 1) return const CalibrationData(plantX: 0, plantY: -6, plantScale: 1.00);
-        if (phase == 2) return const CalibrationData(plantX: 0, plantY: -4, plantScale: 1.00);
-        if (phase == 3) return const CalibrationData(plantX: 0, plantY: -15, plantScale: 1.15);
-        if (phase == 4) return const CalibrationData(plantX: 1, plantY: -15, plantScale: 1.15);
-      } else if (pot == 'pot_japanese') {
-        if (phase == 1) return const CalibrationData(plantX: 1, plantY: -11, plantScale: 1.15);
-        if (phase == 2) return const CalibrationData(plantX: -1, plantY: -20, plantScale: 1.20);
-        if (phase == 3) return const CalibrationData(plantX: 1, plantY: -20, plantScale: 1.20);
-        if (phase == 4) return const CalibrationData(plantX: 1, plantY: -22, plantScale: 1.20);
-      } else if (pot == 'pot_volcanic') {
-        if (phase == 1) return const CalibrationData(plantX: 0, plantY: -5, plantScale: 1.00);
-        if (phase == 2) return const CalibrationData(plantX: 0, plantY: -7, plantScale: 1.05);
-        if (phase == 3) return const CalibrationData(plantX: 1, plantY: -10, plantScale: 1.10);
-        if (phase == 4) return const CalibrationData(plantX: 1, plantY: -11, plantScale: 1.10);
-      }
-    }
-
-    return const CalibrationData();
-  }
+  CalibrationData get _currentCalibration => PlantCalibration.getCalibration(
+        species: widget.equippedSpecies,
+        pot: widget.equippedPot,
+        phase: _currentPhase,
+      );
 
   double get _finalPlantX => _currentCalibration.plantX + _manualPlantX;
   double get _finalPlantY => _currentCalibration.plantY + _manualPlantY;
@@ -203,47 +80,30 @@ class _GrowingPlantWidgetState extends State<GrowingPlantWidget> {
   double get _finalPotY => _currentCalibration.potY + _manualPotY;
   double get _finalPotScale => _currentCalibration.potScale * _manualPotScale;
 
-  double get _potBottom {
-    double base = -83.1;
-    if (_currentPhase == 1 || _currentPhase == 2) base = -91.3;
-    else if (_currentPhase == 3) base = -88.5;
-    return base + _finalPotY;
-  }
+  double get _potBottom =>
+      PlantCalibration.getBasePotBottom(_currentPhase) + _finalPotY;
 
-  double get _potLeft {
-    double base = 5.6;
-    if (_currentPhase == 1) base = 2.9;
-    return base + _finalPotX;
-  }
+  double get _potLeft =>
+      PlantCalibration.getBasePotLeft(_currentPhase) + _finalPotX;
 
-  double get _potWidth => 127.6 * _finalPotScale;
+  double get _potWidth => PlantCalibration.basePotWidth * _finalPotScale;
 
-  double get _plantBottom {
-    double base = -72.2;
-    if (_currentPhase == 1) base = -21.6;
-    return base + _finalPlantY;
-  }
+  double get _plantBottom =>
+      PlantCalibration.getBasePlantBottom(_currentPhase) + _finalPlantY;
 
-  double get _plantLeft {
-    double base = 2.0;
-    if (_currentPhase == 1) base = 0.0;
-    return base + _finalPlantX;
-  }
+  double get _plantLeft =>
+      PlantCalibration.getBasePlantLeft(_currentPhase) + _finalPlantX;
 
-  double get _plantSize {
-    double base = 258.2;
-    if (_currentPhase == 1) base = 150.1;
-    else if (_currentPhase == 2 || _currentPhase == 3) base = 253.4;
-    return base * _finalPlantScale;
-  }
+  double get _plantSize =>
+      PlantCalibration.getBasePlantSize(_currentPhase) * _finalPlantScale;
 
   void _printCoordinates() {
-    print('\n=============================================');
-    print('📍 DATOS DE CALIBRACIÓN REGISTRADOS:');
-    print('ESPECIE: ${widget.equippedSpecies} | MACETA: ${widget.equippedPot} | FASE: $_currentPhase');
-    print('PLANTA -> Offset X: ${_finalPlantX.toInt()}, Y: ${_finalPlantY.toInt()} | Escala: ${_finalPlantScale.toStringAsFixed(2)}x');
-    print('MACETA -> Offset X: ${_finalPotX.toInt()}, Y: ${_finalPotY.toInt()} | Escala: ${_finalPotScale.toStringAsFixed(2)}x');
-    print('=============================================\n');
+    debugPrint('\n=============================================');
+    debugPrint('📍 DATOS DE CALIBRACIÓN REGISTRADOS:');
+    debugPrint('ESPECIE: ${widget.equippedSpecies} | MACETA: ${widget.equippedPot} | FASE: $_currentPhase');
+    debugPrint('PLANTA -> Offset X: ${_finalPlantX.toInt()}, Y: ${_finalPlantY.toInt()} | Escala: ${_finalPlantScale.toStringAsFixed(2)}x');
+    debugPrint('MACETA -> Offset X: ${_finalPotX.toInt()}, Y: ${_finalPotY.toInt()} | Escala: ${_finalPotScale.toStringAsFixed(2)}x');
+    debugPrint('=============================================\n');
   }
 
   void _openCalibratorMenu() {

@@ -1,7 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/subject_model.dart';
+import 'widget_sync_service.dart';
 
 class FocusService {
   static const String _keyCoins = 'focus_coins';
@@ -17,6 +17,10 @@ class FocusService {
   static const String _keyEquippedPot = 'equipped_pot';
   static const String _keyPurchasedDecorations = 'focus_purchased_decorations';
   static const String _keyEquippedDecoration = 'focus_equipped_decoration';
+
+  // Claves para el Sistema de Rachas Diarias (Estilo Duolingo)
+  static const String _keyStreakCount = 'focus_streak_count';
+  static const String _keyLastStudyDate = 'focus_last_study_date';
 
   // --- VALIDACIONES DE TIENDA (Bonsái excluido) ---
   static const List<String> validSpecies = [
@@ -155,6 +159,7 @@ class FocusService {
         plantProgress: plantProgress,
       );
       await saveSubject(updated);
+      await syncWidgetWithActiveState();
     }
   }
 
@@ -220,9 +225,17 @@ class FocusService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyEquippedSpecies, speciesId);
 
-    final activeId = await getActiveSubjectId();
+    String? activeId = await getActiveSubjectId();
+    final subjects = await getSubjects();
+    if (activeId == null && subjects.isNotEmpty) {
+      activeId = subjects.first.id;
+      await setActiveSubjectId(activeId);
+    }
+
     if (activeId != null) {
       await updateSubjectPlant(subjectId: activeId, equippedSpecies: speciesId);
+    } else {
+      await syncWidgetWithActiveState();
     }
   }
 
@@ -283,9 +296,125 @@ class FocusService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyEquippedPot, potId);
 
-    final activeId = await getActiveSubjectId();
+    String? activeId = await getActiveSubjectId();
+    final subjects = await getSubjects();
+    if (activeId == null && subjects.isNotEmpty) {
+      activeId = subjects.first.id;
+      await setActiveSubjectId(activeId);
+    }
+
     if (activeId != null) {
       await updateSubjectPlant(subjectId: activeId, equippedPot: potId);
+    } else {
+      await syncWidgetWithActiveState();
+    }
+  }
+
+  // ==========================================
+  // SISTEMA DE RACHAS DE ESTUDIO (DUOLINGO STYLE)
+  // ==========================================
+
+  // Obtener la racha actual calculada según el último día de estudio
+  Future<int> getStreak() async {
+    final prefs = await SharedPreferences.getInstance();
+    final streak = prefs.getInt(_keyStreakCount) ?? 1;
+    final lastDateStr = prefs.getString(_keyLastStudyDate);
+    if (lastDateStr == null) return streak;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final lastDate = DateTime.tryParse(lastDateStr);
+    if (lastDate == null) return streak;
+
+    final lastDay = DateTime(lastDate.year, lastDate.month, lastDate.day);
+    final diff = today.difference(lastDay).inDays;
+
+    // Si pasaron más de 1 día entero sin estudiar, la racha se reinicia a 0
+    if (diff > 1) {
+      await prefs.setInt(_keyStreakCount, 0);
+      return 0;
+    }
+    return streak;
+  }
+
+  // Verifica si el usuario ya estudió el día de hoy
+  Future<bool> hasStudiedToday() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastDateStr = prefs.getString(_keyLastStudyDate);
+    if (lastDateStr == null) return false;
+
+    final now = DateTime.now();
+    final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+    return lastDateStr == todayStr;
+  }
+
+  // Registra una sesión completada de Pomodoro y avanza la racha diaria
+  Future<int> registerStudySession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+    final lastDateStr = prefs.getString(_keyLastStudyDate);
+
+    int currentStreak = prefs.getInt(_keyStreakCount) ?? 0;
+
+    if (lastDateStr == null) {
+      currentStreak = 1;
+    } else {
+      final lastDate = DateTime.tryParse(lastDateStr);
+      if (lastDate != null) {
+        final lastDay = DateTime(lastDate.year, lastDate.month, lastDate.day);
+        final diff = today.difference(lastDay).inDays;
+        if (diff == 0) {
+          // Ya estudió hoy, mantiene la racha activa
+          if (currentStreak == 0) currentStreak = 1;
+        } else if (diff == 1) {
+          // Estudió ayer consecutivamente, ¡incrementa la racha!
+          currentStreak++;
+        } else {
+          // Dejó pasar más de un día, reinicia en 1
+          currentStreak = 1;
+        }
+      } else {
+        currentStreak = 1;
+      }
+    }
+
+    await prefs.setInt(_keyStreakCount, currentStreak);
+    await prefs.setString(_keyLastStudyDate, todayStr);
+    await syncWidgetWithActiveState();
+    return currentStreak;
+  }
+
+  /// Sincroniza automáticamente los Home Widgets (iOS y Android) con el estado real
+  Future<void> syncWidgetWithActiveState() async {
+    try {
+      final subjects = await getSubjects();
+      final activeId = await getActiveSubjectId();
+      SubjectModel? active;
+      if (subjects.isNotEmpty) {
+        active = subjects.firstWhere(
+          (s) => s.id == activeId,
+          orElse: () => subjects.first,
+        );
+      }
+      final species = active?.equippedSpecies ?? await getEquippedSpecies();
+      final pot = active?.equippedPot ?? await getEquippedPot();
+      final progress = active?.plantProgress ?? 0.0;
+      final subjectName = active?.name ?? 'Enfoque Académico';
+      final streak = await getStreak();
+      final studiedToday = await hasStudiedToday();
+
+      await WidgetSyncService.syncWidgetData(
+        species: species,
+        pot: pot,
+        progress: progress,
+        subjectName: subjectName,
+        streak: streak,
+        studiedToday: studiedToday,
+      );
+    } catch (e) {
+      debugPrint('Aviso al sincronizar widget desde FocusService: $e');
     }
   }
 
