@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import '../models/plant_calibration.dart';
 import '../models/subject_model.dart';
 import '../services/focus_service.dart';
 import '../widgets/growing_plant_widget.dart';
@@ -17,7 +19,7 @@ class PomodoroScreen extends StatefulWidget {
   State<PomodoroScreen> createState() => _PomodoroScreenState();
 }
 
-class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProviderStateMixin {
+class _PomodoroScreenState extends State<PomodoroScreen> with TickerProviderStateMixin {
   static const int _workTime = 25 * 60;
   static const int _breakTime = 5 * 60;
 
@@ -37,8 +39,16 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
   String _equippedDecoration = 'dec_none';
   String _equippedSpecies = 'sp_oak';
 
+  Map<String, List<DecorationTransform>> _decorationTransforms = {};
+  bool _isAdjustingDecoration = false;
+  List<DecorationTransform>? _draftTransforms;
+  int _selectedDecorationIndex = 0;
+
   late AnimationController _wateringController;
   bool _isWatering = false;
+
+  late AnimationController _growthGlittersController;
+  bool _showGrowthGlitters = false;
 
   @override
   void initState() {
@@ -54,6 +64,18 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
       }
     });
 
+    _growthGlittersController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1670),
+    );
+    _growthGlittersController.addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted) {
+        setState(() {
+          _showGrowthGlitters = false;
+        });
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkOnboardingAndLoadData();
     });
@@ -63,6 +85,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
   void dispose() {
     _timer?.cancel();
     _wateringController.dispose();
+    _growthGlittersController.dispose();
     super.dispose();
   }
 
@@ -73,6 +96,15 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
     });
     _wateringController.reset();
     _wateringController.forward();
+  }
+
+  void _triggerGrowthGlitters() {
+    if (!mounted) return;
+    setState(() {
+      _showGrowthGlitters = true;
+    });
+    _growthGlittersController.reset();
+    _growthGlittersController.forward();
   }
 
   String _capitalize(String text) {
@@ -109,6 +141,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
     final pot = active?.equippedPot ?? await _focusService.getEquippedPot();
     final species = active?.equippedSpecies ?? await _focusService.getEquippedSpecies();
     final decoration = await _focusService.getEquippedDecoration();
+    final transforms = await _focusService.getAllDecorationTransforms();
 
     if (mounted) {
       setState(() {
@@ -117,7 +150,13 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
         _activeSubject = active;
         _equippedPot = pot;
         _equippedSpecies = species;
+        if (_equippedDecoration != decoration) {
+          _isAdjustingDecoration = false;
+          _draftTransforms = null;
+          _selectedDecorationIndex = 0;
+        }
         _equippedDecoration = decoration;
+        _decorationTransforms = transforms;
       });
 
       // Sincronizar automáticamente con el widget de la pantalla de inicio
@@ -134,98 +173,447 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
     }
   }
 
-  // Construye la capa de animación según el adorno equipado
-  Widget _buildDecorationOverlay() {
-    switch (_equippedDecoration) {
+  Future<void> _addTestCoins() async {
+    final newCoins = await _focusService.addCoins(100);
+    if (!mounted) return;
+    setState(() {
+      _coins = newCoins;
+    });
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('🪙 +100 monedas añadidas para probar'),
+          duration: Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  ({String name, String asset, double baseSize})? _getDecorationConfig(
+    String id,
+  ) {
+    switch (id) {
       case 'dec_bees':
-      // Abejas revoloteando alrededor de la copa de la planta
-        return Positioned(
-          top: -35,
-          child: IgnorePointer(
-            child: SizedBox(
-              width: 310,
-              height: 310,
-              child: Lottie.asset(
-                'assets/animations/Bees Flying Pattern.json',
-                fit: BoxFit.contain,
-                repeat: true,
-              ),
-            ),
-          ),
+        return (
+          name: 'Abejas del Jardín',
+          asset: 'assets/animations/Bees Flying Pattern.json',
+          baseSize: 310.0,
         );
-
       case 'dec_butterflies':
-      // Mariposas alrededor de la planta decorándola
-        return Positioned(
-          top: -25,
-          child: IgnorePointer(
-            child: SizedBox(
-              width: 300,
-              height: 300,
-              child: Lottie.asset(
-                'assets/animations/Untitled file.json',
-                fit: BoxFit.contain,
-                repeat: true,
-              ),
-            ),
-          ),
+        return (
+          name: 'Mariposas Mágicas',
+          asset: 'assets/animations/Untitled file.json',
+          baseSize: 300.0,
         );
-
       case 'dec_owl':
-      // Búho posicionado a un costado de la planta
-        return Positioned(
-          top: 10,
-          right: -75,
-          child: IgnorePointer(
-            child: SizedBox(
-              width: 145,
-              height: 145,
-              child: Lottie.asset(
-                'assets/animations/Own flying.json',
-                fit: BoxFit.contain,
-                repeat: true,
-              ),
-            ),
-          ),
+        return (
+          name: 'Búho Guardián',
+          asset: 'assets/animations/Own flying.json',
+          baseSize: 145.0,
         );
-
       case 'dec_stars':
-      // Estrellas mágicas rodeando la planta
-        return Positioned(
-          top: -20,
-          child: IgnorePointer(
-            child: SizedBox(
-              width: 280,
-              height: 280,
-              child: Lottie.asset(
-                'assets/animations/star.json',
-                fit: BoxFit.contain,
-                repeat: true,
-              ),
-            ),
-          ),
+        return (
+          name: 'Polvo Estelar',
+          asset: 'assets/animations/star.json',
+          baseSize: 280.0,
         );
-
-      case 'dec_glitters':
-      // Destellos dorados alrededor de la planta
-        return Positioned(
-          top: -20,
-          child: IgnorePointer(
-            child: SizedBox(
-              width: 290,
-              height: 290,
-              child: Lottie.asset(
-                'assets/animations/Coin  glitters.json',
-                fit: BoxFit.contain,
-                repeat: true,
-              ),
-            ),
-          ),
-        );
-
       default:
-        return const SizedBox.shrink();
+        return null;
     }
+  }
+
+  List<DecorationTransform> _activeDecorationTransforms() {
+    if (_draftTransforms != null) return _draftTransforms!;
+    return _decorationTransforms[_equippedDecoration] ??
+        FocusService.defaultDecorationTransforms(_equippedDecoration);
+  }
+
+  Future<void> _saveCurrentDecorationPosition() async {
+    if (_equippedDecoration == 'dec_none') return;
+    final transforms = List<DecorationTransform>.from(
+      _activeDecorationTransforms(),
+    );
+    await _focusService.saveDecorationTransforms(
+      _equippedDecoration,
+      transforms,
+    );
+    final updated = Map<String, List<DecorationTransform>>.from(
+      _decorationTransforms,
+    );
+    updated[_equippedDecoration] = transforms;
+
+    for (int i = 0; i < transforms.length; i++) {
+      final t = transforms[i];
+      debugPrint(
+        '📍 Posición de adorno guardada [$_equippedDecoration #${i + 1}]: '
+        'dx=${t.dx.toStringAsFixed(1)}, '
+        'dy=${t.dy.toStringAsFixed(1)}, '
+        'scale=${t.scale.toStringAsFixed(2)}',
+      );
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _decorationTransforms = updated;
+      _draftTransforms = null;
+      _isAdjustingDecoration = false;
+      _selectedDecorationIndex = 0;
+    });
+
+    final cfg = _getDecorationConfig(_equippedDecoration);
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            '✅ Posición guardada para ${cfg?.name ?? _equippedDecoration}',
+          ),
+          backgroundColor: Colors.green.shade700,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  Future<void> _resetCurrentDecorationPosition() async {
+    if (_equippedDecoration == 'dec_none') return;
+    final def = List<DecorationTransform>.from(
+      FocusService.defaultDecorationTransforms(_equippedDecoration),
+    );
+    await _focusService.saveDecorationTransforms(_equippedDecoration, def);
+    final updated = Map<String, List<DecorationTransform>>.from(
+      _decorationTransforms,
+    );
+    updated[_equippedDecoration] = def;
+    if (!mounted) return;
+    setState(() {
+      _decorationTransforms = updated;
+      _draftTransforms = List<DecorationTransform>.from(def);
+      _selectedDecorationIndex = 0;
+    });
+  }
+
+  // Construye las capas de animación arrastrables según el adorno equipado
+  List<Widget> _buildDecorationOverlays({
+    required double stageWidth,
+    required double stageHeight,
+    required double plantTop,
+  }) {
+    final cfg = _getDecorationConfig(_equippedDecoration);
+    if (cfg == null) return const [];
+
+    final transforms = _activeDecorationTransforms();
+    if (transforms.isEmpty) return const [];
+
+    // Mantener la copia seleccionada al frente durante el ajuste para que
+    // animaciones superpuestas no capturen el arrastre.
+    final indices = List<int>.generate(transforms.length, (i) => i);
+    if (_isAdjustingDecoration &&
+        _selectedDecorationIndex >= 0 &&
+        _selectedDecorationIndex < indices.length) {
+      indices.remove(_selectedDecorationIndex);
+      indices.add(_selectedDecorationIndex);
+    }
+
+    return indices.map((index) {
+      final transform = transforms[index];
+      final isSelected =
+          _isAdjustingDecoration && _selectedDecorationIndex == index;
+      final animSize = (cfg.baseSize * transform.scale).clamp(60.0, 520.0);
+      final left = (stageWidth / 2) - (animSize / 2) + transform.dx;
+      final top = plantTop + transform.dy;
+
+      return Positioned(
+        left: left,
+        top: top,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            setState(() {
+              _isAdjustingDecoration = true;
+              _selectedDecorationIndex = index;
+              _draftTransforms ??= List<DecorationTransform>.from(transforms);
+            });
+          },
+          onLongPress: () {
+            setState(() {
+              _isAdjustingDecoration = true;
+              _selectedDecorationIndex = index;
+              _draftTransforms ??= List<DecorationTransform>.from(transforms);
+            });
+          },
+          onPanStart: (_) {
+            setState(() {
+              _isAdjustingDecoration = true;
+              _selectedDecorationIndex = index;
+              _draftTransforms ??= List<DecorationTransform>.from(transforms);
+            });
+          },
+          onPanUpdate: (details) {
+            final currentList = List<DecorationTransform>.from(
+              _draftTransforms ?? _activeDecorationTransforms(),
+            );
+            if (index >= currentList.length) return;
+            final current = currentList[index];
+            final maxDx = stageWidth * 0.85;
+            final minDy = -plantTop - 15.0;
+            final maxDy =
+                (stageHeight - plantTop) - math.min(animSize * 0.45, 70.0);
+
+            currentList[index] = current.copyWith(
+              dx: (current.dx + details.delta.dx).clamp(-maxDx, maxDx),
+              dy: (current.dy + details.delta.dy).clamp(minDy, maxDy),
+            );
+            setState(() {
+              _selectedDecorationIndex = index;
+              _draftTransforms = currentList;
+            });
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 140),
+            width: animSize,
+            height: animSize,
+            decoration: _isAdjustingDecoration
+                ? BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    color: Colors.amberAccent.withValues(
+                      alpha: isSelected ? 0.12 : 0.04,
+                    ),
+                    border: Border.all(
+                      color: isSelected
+                          ? Colors.amberAccent
+                          : Colors.amberAccent.withValues(alpha: 0.4),
+                      width: isSelected ? 2 : 1.2,
+                    ),
+                  )
+                : null,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned.fill(
+                  child: Lottie.asset(
+                    cfg.asset,
+                    fit: BoxFit.contain,
+                    repeat: true,
+                  ),
+                ),
+                if (isSelected)
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.amberAccent,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.open_with_rounded,
+                        size: 16,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }).toList();
+  }
+
+  /// Destellos dorados que aparecen en las posiciones guardadas cuando la planta crece.
+  List<Widget> _buildGrowthGlittersOverlay({
+    required double stageWidth,
+    required double plantTop,
+  }) {
+    if (!_showGrowthGlitters) return const [];
+    const double baseSize = 290.0;
+
+    return FocusService.growthGlitterTransforms.map((transform) {
+      final animSize = (baseSize * transform.scale).clamp(60.0, 520.0);
+      final left = (stageWidth / 2) - (animSize / 2) + transform.dx;
+      final top = plantTop + transform.dy;
+
+      return Positioned(
+        left: left,
+        top: top,
+        child: IgnorePointer(
+          child: SizedBox(
+            width: animSize,
+            height: animSize,
+            child: Lottie.asset(
+              'assets/animations/Coin   glitters.json',
+              controller: _growthGlittersController,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+      );
+    }).toList();
+  }
+
+  Widget _buildDecorationAdjustToolbar() {
+    final transforms = _activeDecorationTransforms();
+    if (transforms.isEmpty) return const SizedBox.shrink();
+    final safeIdx = _selectedDecorationIndex.clamp(0, transforms.length - 1);
+    final transform = transforms[safeIdx];
+    final prefix = transforms.length > 1 ? '#${safeIdx + 1}/${transforms.length}  ' : '';
+
+    return Positioned(
+      bottom: 6,
+      left: 14,
+      right: 14,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.72),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.55)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.open_with_rounded,
+                      color: Colors.amberAccent,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        '${prefix}X: ${transform.dx.toStringAsFixed(0)}  Y: ${transform.dy.toStringAsFixed(0)}  •  ${(transform.scale * 100).round()}%',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (transforms.length > 1)
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                        padding: EdgeInsets.zero,
+                        tooltip: 'Siguiente copia',
+                        icon: const Icon(Icons.swap_horiz_rounded,
+                            color: Colors.amberAccent, size: 19),
+                        onPressed: () {
+                          setState(() {
+                            _selectedDecorationIndex =
+                                (safeIdx + 1) % transforms.length;
+                          });
+                        },
+                      ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                      padding: EdgeInsets.zero,
+                      tooltip: 'Reducir tamaño',
+                      icon: const Icon(Icons.remove_circle_outline,
+                          color: Colors.white70, size: 19),
+                      onPressed: () {
+                        final next = List<DecorationTransform>.from(transforms);
+                        next[safeIdx] = transform.copyWith(
+                          scale: (transform.scale - 0.1).clamp(0.35, 1.8),
+                        );
+                        setState(() => _draftTransforms = next);
+                      },
+                    ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                      padding: EdgeInsets.zero,
+                      tooltip: 'Aumentar tamaño',
+                      icon: const Icon(Icons.add_circle_outline,
+                          color: Colors.white70, size: 19),
+                      onPressed: () {
+                        final next = List<DecorationTransform>.from(transforms);
+                        next[safeIdx] = transform.copyWith(
+                          scale: (transform.scale + 0.1).clamp(0.35, 1.8),
+                        );
+                        setState(() => _draftTransforms = next);
+                      },
+                    ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                      padding: EdgeInsets.zero,
+                      tooltip: 'Restablecer posición',
+                      icon: const Icon(Icons.restart_alt_rounded,
+                          color: Colors.orangeAccent, size: 19),
+                      onPressed: _resetCurrentDecorationPosition,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white70,
+                          side: const BorderSide(color: Colors.white24),
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          visualDensity: VisualDensity.compact,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _draftTransforms = null;
+                            _isAdjustingDecoration = false;
+                            _selectedDecorationIndex = 0;
+                          });
+                        },
+                        child: const Text('Cancelar', style: TextStyle(fontSize: 12)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF58CC02),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          visualDensity: VisualDensity.compact,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        icon: const Icon(Icons.save_rounded, size: 16),
+                        label: const Text(
+                          'Guardar posición',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        onPressed: _saveCurrentDecorationPosition,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _switchActiveSubject(String subjectId) async {
@@ -483,9 +871,22 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
           return;
         }
         if (_timeLeft > 0) {
+          final baseProgress = _activeSubject?.plantProgress ?? 0.0;
+          final oldSessionProgress = 1.0 - (_timeLeft / _workTime);
+          final nextTimeLeft = _timeLeft - 1;
+          final newSessionProgress = 1.0 - (nextTimeLeft / _workTime);
+          final oldTotal = (baseProgress + oldSessionProgress * 0.25).clamp(0.0, 1.0);
+          final newTotal = (baseProgress + newSessionProgress * 0.25).clamp(0.0, 1.0);
+          final didAdvancePhase = _isWorkMode &&
+              PlantCalibration.getPhase(newTotal) >
+                  PlantCalibration.getPhase(oldTotal);
+
           setState(() {
-            _timeLeft--;
+            _timeLeft = nextTimeLeft;
           });
+          if (didAdvancePhase) {
+            _triggerGrowthGlitters();
+          }
         } else {
           _completeSession();
         }
@@ -501,12 +902,15 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
       });
     }
 
+    bool didGrow = false;
     if (_isWorkMode && _activeSubject != null) {
       await _focusService.addCoins(25);
       await _focusService.addMinutesToSubject(_activeSubject!.id, 25);
       await _focusService.registerStudySession(); // Registra racha de estudio diaria
 
-      double newProgress = (_activeSubject!.plantProgress + 0.25).clamp(0.0, 1.0);
+      final double oldProgress = _activeSubject!.plantProgress;
+      final double newProgress = (oldProgress + 0.25).clamp(0.0, 1.0);
+      didGrow = newProgress > oldProgress;
 
       await _focusService.updateSubjectPlant(
         subjectId: _activeSubject!.id,
@@ -516,6 +920,9 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
 
     _switchMode();
     await _loadData();
+    if (didGrow) {
+      _triggerGrowthGlitters();
+    }
   }
 
   void _resetTimer() {
@@ -595,39 +1002,49 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
               children: [
                 // Barra Superior
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          const Text(
-                            'UPEA Connect',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              shadows: [Shadow(blurRadius: 6, color: Colors.black87)],
-                            ),
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Row(
+                            children: [
+                              const Text(
+                                'UPEA Connect',
+                                style: TextStyle(
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  shadows: [Shadow(blurRadius: 6, color: Colors.black87)],
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.white24,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  _isWorkMode ? '☀️ Día' : '🌙 Noche',
+                                  style: const TextStyle(fontSize: 11, color: Colors.white),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.white24,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              _isWorkMode ? '☀️ Día' : '🌙 Noche',
-                              style: const TextStyle(fontSize: 11, color: Colors.white),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
+                      const SizedBox(width: 6),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.bar_chart_rounded, color: Colors.white, size: 26),
+                            padding: const EdgeInsets.all(5),
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            icon: const Icon(Icons.bar_chart_rounded, color: Colors.white, size: 23),
                             tooltip: 'Ver Analítica y Gráficos',
                             onPressed: () {
                               Navigator.push(
@@ -637,7 +1054,9 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                             },
                           ),
                           IconButton(
-                            icon: const Icon(Icons.storefront_rounded, color: Colors.white, size: 26),
+                            padding: const EdgeInsets.all(5),
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            icon: const Icon(Icons.storefront_rounded, color: Colors.white, size: 23),
                             tooltip: 'Tienda de Enfoque',
                             onPressed: () async {
                               await Navigator.push(
@@ -648,7 +1067,9 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                             },
                           ),
                           IconButton(
-                            icon: const Icon(Icons.widgets_rounded, color: Colors.white, size: 26),
+                            padding: const EdgeInsets.all(5),
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            icon: const Icon(Icons.widgets_rounded, color: Colors.white, size: 23),
                             tooltip: 'Widget de Pantalla de Inicio',
                             onPressed: () async {
                               await showDialog(
@@ -665,25 +1086,36 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                             },
                           ),
                           const SizedBox(width: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.amber.shade100,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.monetization_on_rounded, color: Colors.amber, size: 18),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '$_coins',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                    color: Colors.amber.shade900,
+                          Tooltip(
+                            message: 'Toca para +100 monedas de prueba',
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(20),
+                                onTap: _addTestCoins,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.shade100,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.monetization_on_rounded, color: Colors.amber, size: 17),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '$_coins',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          color: Colors.amber.shade900,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
+                              ),
                             ),
                           ),
                         ],
@@ -698,49 +1130,75 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                   child: _buildSubjectSelector(),
                 ),
 
-                // Área Principal de la Planta + Adornos Animados
+                // Área Principal de la Planta + Adornos Animados Arrastrables
                 Expanded(
-                  child: Center(
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      alignment: Alignment.center,
-                      children: [
-                        GrowingPlantWidget(
-                          progress: displayProgress,
-                          equippedPot: _equippedPot,
-                          equippedDecoration: _equippedDecoration,
-                          equippedSpecies: _equippedSpecies,
-                        ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final stageWidth = constraints.maxWidth;
+                      final stageHeight = constraints.maxHeight;
+                      final plantTop = (stageHeight - 220.0) / 2;
 
-                        // Adorno animado (Abejas, Mariposas, Búho, Estrellas o Brillos)
-                        _buildDecorationOverlay(),
+                      return SizedBox(
+                        width: stageWidth,
+                        height: stageHeight,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Align(
+                              alignment: Alignment.center,
+                              child: GrowingPlantWidget(
+                                progress: displayProgress,
+                                equippedPot: _equippedPot,
+                                equippedDecoration: _equippedDecoration,
+                                equippedSpecies: _equippedSpecies,
+                              ),
+                            ),
 
-                        // Animación de Riego
-                        if (_isWatering)
-                          Positioned(
-                            top: -190,
-                            right: -25,
-                            child: IgnorePointer(
-                              child: Transform.scale(
-                                scaleX: -1,
-                                child: SizedBox(
-                                  width: 550,
-                                  height: 550,
-                                  child: Lottie.asset(
-                                    'assets/animations/Watering.json',
-                                    controller: _wateringController,
-                                    fit: BoxFit.contain,
-                                    onLoaded: (composition) {
-                                      _wateringController.duration = composition.duration;
-                                      _wateringController.forward();
-                                    },
+                            // Adornos animados arrastrables (Abejas, Mariposas, Búho o Estrellas)
+                            ..._buildDecorationOverlays(
+                              stageWidth: stageWidth,
+                              stageHeight: stageHeight,
+                              plantTop: plantTop,
+                            ),
+
+                            // Destellos de monedas cuando la planta crece
+                            ..._buildGrowthGlittersOverlay(
+                              stageWidth: stageWidth,
+                              plantTop: plantTop,
+                            ),
+
+                            // Animación de Riego
+                            if (_isWatering)
+                              Positioned(
+                                top: plantTop - 190,
+                                right: -25,
+                                child: IgnorePointer(
+                                  child: Transform.scale(
+                                    scaleX: -1,
+                                    child: SizedBox(
+                                      width: 550,
+                                      height: 550,
+                                      child: Lottie.asset(
+                                        'assets/animations/Watering.json',
+                                        controller: _wateringController,
+                                        fit: BoxFit.contain,
+                                        onLoaded: (composition) {
+                                          _wateringController.duration = composition.duration;
+                                          _wateringController.forward();
+                                        },
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ),
-                      ],
-                    ),
+
+                            // Barra flotante para guardar/ajustar posición del adorno
+                            if (_isAdjustingDecoration && _equippedDecoration != 'dec_none')
+                              _buildDecorationAdjustToolbar(),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ),
 
@@ -766,10 +1224,14 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                         onPressed: () async {
                           double current = displayProgress;
                           double next = (current + 0.25) > 1.0 ? 0.0 : current + 0.25;
+                          final didGrow = next > current;
 
                           setState(() {
                             _debugProgress = next;
                           });
+                          if (didGrow) {
+                            _triggerGrowthGlitters();
+                          }
 
                           if (_activeSubject != null) {
                             await _focusService.updateSubjectPlant(
@@ -790,6 +1252,34 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                         label: Text(_isWorkMode ? 'Ver Noche' : 'Ver Día', style: const TextStyle(fontSize: 11)),
                         onPressed: _switchMode,
                       ),
+                      if (_equippedDecoration != 'dec_none')
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _isAdjustingDecoration
+                                ? Colors.amber.shade700
+                                : Colors.teal.shade700,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          ),
+                          icon: const Icon(Icons.open_with_rounded, size: 16),
+                          label: Text(
+                            _isAdjustingDecoration ? 'Listo' : 'Mover',
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          onPressed: () {
+                            if (_isAdjustingDecoration) {
+                              _saveCurrentDecorationPosition();
+                            } else {
+                              setState(() {
+                                _isAdjustingDecoration = true;
+                                _selectedDecorationIndex = 0;
+                                _draftTransforms ??= List<DecorationTransform>.from(
+                                  _activeDecorationTransforms(),
+                                );
+                              });
+                            }
+                          },
+                        ),
                     ],
                   ),
                 ),
@@ -853,50 +1343,53 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                             ),
                             const SizedBox(height: 12),
 
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue.shade600,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blue.shade600,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                    ),
+                                    icon: const Icon(Icons.water_drop_rounded, size: 20),
+                                    label: const Text(
+                                      'Regar',
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                    ),
+                                    onPressed: _triggerWatering,
+                                  ),
+                                  const SizedBox(width: 8),
+
+                                  FloatingActionButton.extended(
+                                    heroTag: 'btnPlay',
+                                    onPressed: _toggleTimer,
+                                    backgroundColor: _isRunning ? Colors.orange.shade800 : Colors.indigo,
+                                    elevation: 2,
+                                    icon: Icon(
+                                      _isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                      color: Colors.white,
+                                    ),
+                                    label: Text(
+                                      _isRunning ? 'Pausar' : 'Estudiar',
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                                     ),
                                   ),
-                                  icon: const Icon(Icons.water_drop_rounded, size: 20),
-                                  label: const Text(
-                                    'Regar',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                  ),
-                                  onPressed: _triggerWatering,
-                                ),
-                                const SizedBox(width: 8),
+                                  const SizedBox(width: 8),
 
-                                FloatingActionButton.extended(
-                                  heroTag: 'btnPlay',
-                                  onPressed: _toggleTimer,
-                                  backgroundColor: _isRunning ? Colors.orange.shade800 : Colors.indigo,
-                                  elevation: 2,
-                                  icon: Icon(
-                                    _isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                                    color: Colors.white,
+                                  IconButton.filledTonal(
+                                    onPressed: _resetTimer,
+                                    icon: const Icon(Icons.refresh_rounded),
+                                    iconSize: 22,
+                                    padding: const EdgeInsets.all(12),
                                   ),
-                                  label: Text(
-                                    _isRunning ? 'Pausar' : 'Estudiar',
-                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-
-                                IconButton.filledTonal(
-                                  onPressed: _resetTimer,
-                                  icon: const Icon(Icons.refresh_rounded),
-                                  iconSize: 22,
-                                  padding: const EdgeInsets.all(12),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ],
                         ),

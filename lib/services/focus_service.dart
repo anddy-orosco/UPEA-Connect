@@ -1,7 +1,42 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/subject_model.dart';
 import 'widget_sync_service.dart';
+
+class DecorationTransform {
+  final double dx;
+  final double dy;
+  final double scale;
+
+  const DecorationTransform({
+    required this.dx,
+    required this.dy,
+    this.scale = 1.0,
+  });
+
+  DecorationTransform copyWith({double? dx, double? dy, double? scale}) {
+    return DecorationTransform(
+      dx: dx ?? this.dx,
+      dy: dy ?? this.dy,
+      scale: scale ?? this.scale,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'dx': dx,
+        'dy': dy,
+        'scale': scale,
+      };
+
+  factory DecorationTransform.fromMap(Map<String, dynamic> map) {
+    return DecorationTransform(
+      dx: (map['dx'] as num?)?.toDouble() ?? 0.0,
+      dy: (map['dy'] as num?)?.toDouble() ?? 0.0,
+      scale: (map['scale'] as num?)?.toDouble() ?? 1.0,
+    );
+  }
+}
 
 class FocusService {
   static const String _keyCoins = 'focus_coins';
@@ -17,6 +52,7 @@ class FocusService {
   static const String _keyEquippedPot = 'equipped_pot';
   static const String _keyPurchasedDecorations = 'focus_purchased_decorations';
   static const String _keyEquippedDecoration = 'focus_equipped_decoration';
+  static const String _keyDecorationTransforms = 'focus_decoration_transforms_v2';
 
   // Claves para el Sistema de Rachas Diarias (Estilo Duolingo)
   static const String _keyStreakCount = 'focus_streak_count';
@@ -42,7 +78,13 @@ class FocusService {
     'dec_butterflies',
     'dec_owl',
     'dec_stars',
-    'dec_glitters',
+  ];
+
+  /// Posiciones calibradas para los destellos de monedas al crecer la planta.
+  static const List<DecorationTransform> growthGlitterTransforms = [
+    DecorationTransform(dx: -41.2, dy: 69.9, scale: 0.35),
+    DecorationTransform(dx: 22.3, dy: 44.7, scale: 0.35),
+    DecorationTransform(dx: 58.6, dy: 111.6, scale: 0.35),
   ];
 
   // Lista de colores predefinidos para asignar automáticamente a materias
@@ -485,5 +527,95 @@ class FocusService {
       return 'dec_none';
     }
     return decoration;
+  }
+
+  // --- POSICIONES Y ESCALA PERSONALIZADAS DE ANIMACIONES (MÚLTIPLES COPIAS) ---
+  static List<DecorationTransform> defaultDecorationTransforms(
+    String decorationId,
+  ) {
+    switch (decorationId) {
+      case 'dec_bees':
+        return const [
+          DecorationTransform(dx: 78.9, dy: 41.0, scale: 0.40),
+          DecorationTransform(dx: -71.5, dy: -7.7, scale: 0.40),
+        ];
+      case 'dec_butterflies':
+        return const [
+          DecorationTransform(dx: 103.2, dy: -44.5, scale: 1.40),
+          DecorationTransform(dx: 76.0, dy: -44.5, scale: 1.40),
+          DecorationTransform(dx: -83.3, dy: -39.4, scale: 1.10),
+        ];
+      case 'dec_owl':
+        return const [
+          DecorationTransform(dx: 149.1, dy: -37.2, scale: 1.80),
+        ];
+      case 'dec_stars':
+        return const [
+          DecorationTransform(dx: -62.9, dy: -32.1, scale: 0.70),
+          DecorationTransform(dx: 100.7, dy: 35.2, scale: 0.70),
+          DecorationTransform(dx: 45.3, dy: 75.4, scale: 0.70),
+        ];
+      default:
+        return const [];
+    }
+  }
+
+  Future<Map<String, List<DecorationTransform>>>
+      getAllDecorationTransforms() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_keyDecorationTransforms);
+    final result = <String, List<DecorationTransform>>{
+      for (final id in validDecorations)
+        id: List<DecorationTransform>.from(defaultDecorationTransforms(id)),
+    };
+
+    if (raw != null && raw.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw) as Map<String, dynamic>;
+        decoded.forEach((key, value) {
+          if (!validDecorations.contains(key)) return;
+          if (value is List) {
+            final parsed = value
+                .whereType<Map<String, dynamic>>()
+                .map(DecorationTransform.fromMap)
+                .toList();
+            if (parsed.isNotEmpty) {
+              result[key] = parsed;
+            }
+          } else if (value is Map<String, dynamic>) {
+            result[key] = [DecorationTransform.fromMap(value)];
+          }
+        });
+      } catch (e) {
+        debugPrint('Error leyendo posiciones de adornos: $e');
+      }
+    }
+    return result;
+  }
+
+  Future<void> saveDecorationTransforms(
+    String decorationId,
+    List<DecorationTransform> transforms,
+  ) async {
+    if (!validDecorations.contains(decorationId)) return;
+    final current = await getAllDecorationTransforms();
+    current[decorationId] = List<DecorationTransform>.from(transforms);
+    final prefs = await SharedPreferences.getInstance();
+    final encoded = jsonEncode(
+      current.map(
+        (key, value) => MapEntry(key, value.map((t) => t.toMap()).toList()),
+      ),
+    );
+    await prefs.setString(_keyDecorationTransforms, encoded);
+  }
+
+  Future<List<DecorationTransform>> resetDecorationTransforms(
+    String decorationId,
+  ) async {
+    final def = List<DecorationTransform>.from(
+      defaultDecorationTransforms(decorationId),
+    );
+    await saveDecorationTransforms(decorationId, def);
+    return def;
   }
 }

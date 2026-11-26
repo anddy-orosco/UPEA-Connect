@@ -116,13 +116,6 @@ class _FocusStoreScreenState extends State<FocusStoreScreen> {
       'lottie': 'assets/animations/star.json',
       'description': 'Destellos de estrellas mágicas rodeando tu planta.',
     },
-    {
-      'id': 'dec_glitters',
-      'name': 'Brillo Áureo',
-      'price': 250,
-      'lottie': 'assets/animations/Coin  glitters.json',
-      'description': 'Resplandor dorado de prosperidad y máximo enfoque.',
-    },
   ];
 
   @override
@@ -247,26 +240,35 @@ class _FocusStoreScreenState extends State<FocusStoreScreen> {
               style: TextStyle(color: Colors.white)),
           iconTheme: const IconThemeData(color: Colors.white),
           actions: [
-            Container(
-              margin: const EdgeInsets.only(right: 16, top: 10, bottom: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade100,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.monetization_on_rounded,
-                      color: Colors.amber, size: 20),
-                  const SizedBox(width: 6),
-                  Text(
-                    '$_coins',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.amber.shade900,
+            GestureDetector(
+              onTap: () async {
+                final newCoins = await _focusService.addCoins(100);
+                if (mounted) {
+                  setState(() => _coins = newCoins);
+                  _showMessage('🪙 +100 monedas añadidas para probar ítems');
+                }
+              },
+              child: Container(
+                margin: const EdgeInsets.only(right: 16, top: 10, bottom: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade100,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.monetization_on_rounded,
+                        color: Colors.amber, size: 20),
+                    const SizedBox(width: 6),
+                    Text(
+                      '$_coins',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.amber.shade900,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],

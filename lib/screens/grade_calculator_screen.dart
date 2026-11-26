@@ -1,4 +1,6 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class GradeCalculatorScreen extends StatefulWidget {
   const GradeCalculatorScreen({super.key});
@@ -10,22 +12,33 @@ class GradeCalculatorScreen extends StatefulWidget {
 class EvaluationItem {
   String name;
   double maxWeight; // Ponderación máxima en la nota final (ej. 25 pts)
-  double? score;    // Nota ingresada por el estudiante
+
+  /// Nota canónica siempre almacenada en puntos directos (0 .. maxWeight).
+  /// Guardar los puntos directos como fuente de verdad evita pérdida de precisión
+  /// al alternar entre "Nota Directa" y "Sobre 100".
+  double? directPoints;
+
+  final TextEditingController controller;
 
   EvaluationItem({
     required this.name,
     required this.maxWeight,
-    this.score,
-  });
+    this.directPoints,
+  }) : controller = TextEditingController();
 
-  // Calcula los puntos aportados según la modalidad seleccionada
-  double getEarnedPoints(bool useScale100) {
-    if (score == null) return 0.0;
+  double getEarnedPoints() => directPoints ?? 0.0;
+
+  double? getDisplayScore(bool useScale100) {
+    if (directPoints == null) return null;
     if (useScale100) {
-      return (score! / 100.0) * maxWeight;
-    } else {
-      return score!; // Nota ingresada directamente en puntos (ej. 20/25)
+      if (maxWeight <= 0) return 0.0;
+      return (directPoints! / maxWeight) * 100.0;
     }
+    return directPoints;
+  }
+
+  void dispose() {
+    controller.dispose();
   }
 }
 
@@ -51,23 +64,33 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
   double get _totalWeight =>
       _evaluations.fold(0.0, (sum, item) => sum + item.maxWeight);
 
-  double get _earnedTotal {
-    final earnedFromEvals = _evaluations.fold(
-        0.0, (sum, item) => sum + item.getEarnedPoints(_useScale100));
-    return earnedFromEvals + _extraPoints;
+  /// Suma de notas de evaluaciones base (estrictamente limitada a 100.0 pts).
+  double get _earnedFromEvaluations {
+    final raw =
+        _evaluations.fold(0.0, (sum, item) => sum + item.getEarnedPoints());
+    return raw.clamp(0.0, 100.0);
   }
+
+  /// Total acumulado: las evaluaciones base nunca superan 100 pts;
+  /// únicamente los puntos extra pueden sumar por encima de 100.
+  double get _earnedTotal => _earnedFromEvaluations + _extraPoints;
 
   double get _evaluatedWeight {
     return _evaluations
-        .where((e) => e.score != null)
+        .where((e) => e.directPoints != null)
         .fold(0.0, (sum, item) => sum + item.maxWeight);
   }
 
-  double get _pendingWeight => _totalWeight - _evaluatedWeight;
+  double get _pendingWeight => math.max(0.0, _totalWeight - _evaluatedWeight);
+
+  double get _maxRemainingBasePoints => math.min(
+        _pendingWeight,
+        math.max(0.0, 100.0 - _earnedFromEvaluations),
+      );
 
   // Calcula qué porcentaje o puntaje se necesita en lo pendiente para llegar a 51
   double? get _requiredOnPending {
-    if (_pendingWeight <= 0) return null;
+    if (_pendingWeight <= 0.001) return null;
     final neededPoints = 51.0 - _earnedTotal;
     if (neededPoints <= 0) return 0.0;
 
@@ -80,8 +103,176 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
 
   @override
   void dispose() {
+    for (final item in _evaluations) {
+      item.dispose();
+    }
     _extraController.dispose();
     super.dispose();
+  }
+
+  String _formatScore(double value) {
+    final rounded = double.parse(value.toStringAsFixed(1));
+    if ((rounded - rounded.roundToDouble()).abs() < 0.001) {
+      return rounded.round().toString();
+    }
+    return rounded.toStringAsFixed(1);
+  }
+
+  double? _parseNumber(String raw) {
+    final normalized = raw.trim().replaceAll(',', '.');
+    if (normalized.isEmpty) return null;
+    return double.tryParse(normalized);
+  }
+
+  void _showLimitNotice(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  /// Cambia entre "Nota Directa" y "Sobre 100" convirtiendo todos los campos
+  /// automáticamente al nuevo sistema sin perder ni distorsionar notas.
+  void _switchScaleMode(bool useScale100) {
+    if (_useScale100 == useScale100) return;
+    setState(() {
+      _useScale100 = useScale100;
+      for (final item in _evaluations) {
+        final displayScore = item.getDisplayScore(_useScale100);
+        if (displayScore == null) {
+          item.controller.clear();
+        } else {
+          final formatted = _formatScore(displayScore);
+          item.controller.value = TextEditingValue(
+            text: formatted,
+            selection: TextSelection.collapsed(offset: formatted.length),
+          );
+        }
+      }
+    });
+  }
+
+  void _onEvaluationScoreChanged(EvaluationItem item, String rawVal) {
+    final trimmed = rawVal.trim();
+    if (trimmed.isEmpty) {
+      setState(() {
+        item.directPoints = null;
+      });
+      return;
+    }
+
+    final parsed = _parseNumber(trimmed);
+    if (parsed == null) return;
+
+    // Puntos ya acumulados en el resto de evaluaciones (para nunca pasar de 100)
+    final otherDirectSum = _evaluations
+        .where((e) => !identical(e, item))
+        .fold(0.0, (sum, e) => sum + e.getEarnedPoints());
+    final remainingBaseBudget = math.max(0.0, 100.0 - otherDirectSum);
+    final maxAllowedDirect = math.min(item.maxWeight, remainingBaseBudget);
+
+    if (_useScale100) {
+      final maxAllowedPercent = item.maxWeight > 0
+          ? math.min(100.0, (maxAllowedDirect / item.maxWeight) * 100.0)
+          : 0.0;
+
+      double effectivePercent = parsed;
+      bool clamped = false;
+      if (effectivePercent < 0) {
+        effectivePercent = 0.0;
+        clamped = true;
+      } else if (effectivePercent > maxAllowedPercent) {
+        effectivePercent = maxAllowedPercent;
+        clamped = true;
+        _showLimitNotice(
+          maxAllowedDirect < item.maxWeight - 0.01
+              ? 'El total de evaluaciones no puede superar 100 pts (solo puntos extra pueden sumarse encima).'
+              : 'La calificación máxima en esta escala es 100.',
+        );
+      }
+
+      if (clamped) {
+        final formatted = _formatScore(effectivePercent);
+        item.controller.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length),
+        );
+      }
+
+      setState(() {
+        item.directPoints =
+            ((effectivePercent / 100.0) * item.maxWeight).clamp(0.0, maxAllowedDirect);
+      });
+    } else {
+      double effectiveDirect = parsed;
+      bool clamped = false;
+      if (effectiveDirect < 0) {
+        effectiveDirect = 0.0;
+        clamped = true;
+      } else if (effectiveDirect > maxAllowedDirect) {
+        effectiveDirect = maxAllowedDirect;
+        clamped = true;
+        _showLimitNotice(
+          maxAllowedDirect < item.maxWeight - 0.01
+              ? 'La suma de evaluaciones no puede superar 100 pts (usa Puntos Extra para sumar más).'
+              : 'Máximo ${_formatScore(item.maxWeight)} pts en ${item.name}.',
+        );
+      }
+
+      if (clamped) {
+        final formatted = _formatScore(effectiveDirect);
+        item.controller.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length),
+        );
+      }
+
+      setState(() {
+        item.directPoints = effectiveDirect;
+      });
+    }
+  }
+
+  /// Ajusta las notas ingresadas si la ponderación de algún ítem cambió,
+  /// asegurando siempre que ningún ítem supere su maxWeight ni la suma pase de 100.
+  void _reconcileBaseCapAndControllers() {
+    double runningBase = 0.0;
+    for (final item in _evaluations) {
+      if (item.directPoints != null) {
+        final allowed = math.min(
+          item.maxWeight,
+          math.max(0.0, 100.0 - runningBase),
+        );
+        if (item.directPoints! > allowed) {
+          item.directPoints = allowed;
+        }
+        runningBase += item.directPoints!;
+        final display = item.getDisplayScore(_useScale100)!;
+        final formatted = _formatScore(display);
+        item.controller.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length),
+        );
+      }
+    }
+  }
+
+  void _clearAllScores() {
+    FocusScope.of(context).unfocus();
+    setState(() {
+      for (final item in _evaluations) {
+        item.directPoints = null;
+        item.controller.clear();
+      }
+      _extraPoints = 0.0;
+      _extraController.clear();
+    });
   }
 
   @override
@@ -124,7 +315,9 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Ponderación total: ${_totalWeight.toStringAsFixed(1)} pts (debe sumar 100 pts).',
+                          _totalWeight > 100.0
+                              ? 'Ponderación total: ${_totalWeight.toStringAsFixed(1)} pts (las evaluaciones base tienen tope de 100 pts).'
+                              : 'Ponderación total: ${_totalWeight.toStringAsFixed(1)} pts (debe sumar 100 pts).',
                           style: TextStyle(
                             color: Colors.amber.shade900,
                             fontWeight: FontWeight.w600,
@@ -147,10 +340,29 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
                       color: colorScheme.primary,
                     ),
                   ),
-                  TextButton.icon(
-                    onPressed: _addNewEvaluationDialog,
-                    icon: Icon(Icons.add_circle_outline, color: colorScheme.primary),
-                    label: Text('Agregar Ítem', style: TextStyle(color: colorScheme.primary)),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_evaluations.any((e) => e.directPoints != null) ||
+                          _extraPoints > 0)
+                        IconButton(
+                          tooltip: 'Limpiar notas',
+                          onPressed: _clearAllScores,
+                          icon: Icon(
+                            Icons.cleaning_services_outlined,
+                            size: 20,
+                            color: colorScheme.onSurface.withValues(alpha: 0.65),
+                          ),
+                        ),
+                      TextButton.icon(
+                        onPressed: _addNewEvaluationDialog,
+                        icon: Icon(Icons.add_circle_outline, color: colorScheme.primary),
+                        label: Text(
+                          'Agregar Ítem',
+                          style: TextStyle(color: colorScheme.primary),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -182,13 +394,25 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Text(
-                          'Puntos Extra:',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.onSurface,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Puntos Extra:',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                            Text(
+                              'Pueden sumar sobre los 100 pts',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: colorScheme.onSurface.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       SizedBox(
@@ -196,18 +420,26 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
                         child: TextField(
                           controller: _extraController,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                          ],
                           textAlign: TextAlign.center,
                           style: TextStyle(color: colorScheme.onSurface),
                           decoration: InputDecoration(
                             hintText: '+0 pts',
-                            contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                            contentPadding:
+                                const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: colorScheme.onSurface.withOpacity(0.2)),
+                              borderSide: BorderSide(
+                                color: colorScheme.onSurface.withValues(alpha: 0.2),
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: colorScheme.onSurface.withOpacity(0.2)),
+                              borderSide: BorderSide(
+                                color: colorScheme.onSurface.withValues(alpha: 0.2),
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -215,8 +447,9 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
                             ),
                           ),
                           onChanged: (val) {
+                            final parsed = _parseNumber(val);
                             setState(() {
-                              _extraPoints = double.tryParse(val) ?? 0.0;
+                              _extraPoints = (parsed == null || parsed < 0) ? 0.0 : parsed;
                             });
                           },
                         ),
@@ -240,7 +473,7 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.primary.withOpacity(0.25)),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.25)),
       ),
       child: Row(
         children: [
@@ -255,7 +488,7 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
                 fontSize: 12,
               ),
               onSelected: (selected) {
-                if (selected) setState(() => _useScale100 = false);
+                if (selected) _switchScaleMode(false);
               },
             ),
           ),
@@ -271,7 +504,7 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
                 fontSize: 12,
               ),
               onSelected: (selected) {
-                if (selected) setState(() => _useScale100 = true);
+                if (selected) _switchScaleMode(true);
               },
             ),
           ),
@@ -288,9 +521,11 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
     String statusText = '';
     Color statusBgColor = colorScheme.primary;
 
-    if (_pendingWeight == 0) {
+    if (_pendingWeight <= 0.001) {
       if (total >= 51.0) {
-        statusText = '🎉 ¡Aprobado!';
+        statusText = total > 100.0
+            ? '🎉 ¡Aprobado! (+puntos extra)'
+            : '🎉 ¡Aprobado!';
       } else if (total >= 40.5 && total < 51.0) {
         statusText = '⚠️ Examen de Segundo Turno';
         statusBgColor = Colors.orange.shade900;
@@ -300,7 +535,9 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
       }
     } else {
       if (total >= 51.0) {
-        statusText = '🎉 ¡Ya alcanzaste la nota de aprobación!';
+        statusText = total > 100.0
+            ? '🎉 ¡Nota máxima superada con extra!'
+            : '🎉 ¡Ya alcanzaste la nota de aprobación!';
       } else if (total >= 40.5) {
         statusText = '🛡️ Ya aseguraste el Segundo Turno (41+ pts)';
       }
@@ -317,7 +554,7 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: statusBgColor.withOpacity(0.3),
+            color: statusBgColor.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -349,6 +586,14 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
               ),
             ],
           ),
+          if (_extraPoints > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                'Base: ${_earnedFromEvaluations.toStringAsFixed(1)} pts  +  Extra: ${_extraPoints.toStringAsFixed(1)} pts',
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            ),
           if (statusText.isNotEmpty) ...[
             const SizedBox(height: 8),
             Container(
@@ -364,38 +609,46 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                 ),
+                textAlign: TextAlign.center,
               ),
             ),
           ],
           const Divider(color: Colors.white24, height: 24),
 
           // Proyección de notas pendientes
-          if (_pendingWeight > 0)
+          if (_pendingWeight > 0.001)
             Column(
               children: [
                 if (req != null && req > 0) ...[
                   Text(
                     _useScale100
-                        ? (req > 100
-                        ? '⚠️ Requiere más del 100% en lo restante.'
-                        : 'Necesitas promediar ~${req.toStringAsFixed(1)} / 100')
-                        : (req > _pendingWeight
-                        ? '⚠️ Necesitas más puntos de los disponibles.'
-                        : 'Necesitas hacer ${req.toStringAsFixed(1)} de ${_pendingWeight.toStringAsFixed(1)} pts faltantes'),
+                        ? ((req > 100 || (51.0 - _earnedTotal) > _maxRemainingBasePoints)
+                            ? '⚠️ Requiere más del 100% en lo restante.'
+                            : 'Necesitas promediar ~${req.toStringAsFixed(1)} / 100')
+                        : (req > _maxRemainingBasePoints
+                            ? '⚠️ Necesitas más puntos de los disponibles.'
+                            : 'Necesitas hacer ${req.toStringAsFixed(1)} de ${_maxRemainingBasePoints.toStringAsFixed(1)} pts faltantes'),
                     style: TextStyle(
-                      color: (req > (_useScale100 ? 100 : _pendingWeight))
+                      color: ((_useScale100 && req > 100) ||
+                              (51.0 - _earnedTotal) > _maxRemainingBasePoints)
                           ? Colors.redAccent
                           : Colors.amberAccent,
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
                     ),
+                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 4),
                   const Text(
                     'para aprobar directamente con 51 pts.',
                     style: TextStyle(color: Colors.white70, fontSize: 13),
                   ),
-                ],
+                ] else
+                  const Text(
+                    'Aprobación asegurada. Sigue sumando para mejorar tu nota.',
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  ),
               ],
             )
           else
@@ -409,8 +662,12 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
   }
 
   // Fila para cada ítem de evaluación
-  Widget _buildEvaluationTile(EvaluationItem item, int index, ColorScheme colorScheme) {
-    final earned = item.getEarnedPoints(_useScale100);
+  Widget _buildEvaluationTile(
+    EvaluationItem item,
+    int index,
+    ColorScheme colorScheme,
+  ) {
+    final earned = item.getEarnedPoints();
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -434,41 +691,50 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
                   const SizedBox(height: 2),
                   Text(
                     'Ponderación: ${item.maxWeight.toStringAsFixed(1)} pts',
-                    style: TextStyle(color: colorScheme.onSurface.withOpacity(0.6), fontSize: 12),
+                    style: TextStyle(
+                      color: colorScheme.onSurface.withValues(alpha: 0.6),
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
             ),
 
-            // Campo de entrada adaptativo según modalidad
+            // Campo de entrada controlado adaptativo según modalidad
             SizedBox(
               width: 85,
               child: TextField(
+                controller: item.controller,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                ],
                 textAlign: TextAlign.center,
                 style: TextStyle(color: colorScheme.onSurface),
                 decoration: InputDecoration(
-                  hintText: _useScale100 ? '0-100' : '0-${item.maxWeight.toStringAsFixed(0)}',
+                  hintText:
+                      _useScale100 ? '0-100' : '0-${_formatScore(item.maxWeight)}',
                   labelText: _useScale100 ? 'Sobre 100' : 'Puntos',
-                  contentPadding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                  contentPadding:
+                      const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: colorScheme.onSurface.withOpacity(0.2)),
+                    borderSide: BorderSide(
+                      color: colorScheme.onSurface.withValues(alpha: 0.2),
+                    ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: colorScheme.onSurface.withOpacity(0.2)),
+                    borderSide: BorderSide(
+                      color: colorScheme.onSurface.withValues(alpha: 0.2),
+                    ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: BorderSide(color: colorScheme.primary),
                   ),
                 ),
-                onChanged: (val) {
-                  setState(() {
-                    item.score = double.tryParse(val);
-                  });
-                },
+                onChanged: (val) => _onEvaluationScoreChanged(item, val),
               ),
             ),
             const SizedBox(width: 8),
@@ -487,8 +753,11 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
                     ),
                   ),
                   Text(
-                    '/${item.maxWeight.toStringAsFixed(0)}',
-                    style: TextStyle(color: colorScheme.onSurface.withOpacity(0.5), fontSize: 11),
+                    '/${_formatScore(item.maxWeight)}',
+                    style: TextStyle(
+                      color: colorScheme.onSurface.withValues(alpha: 0.5),
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),
@@ -502,7 +771,8 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
                   _editEvaluationDialog(item);
                 } else if (value == 'delete') {
                   setState(() {
-                    _evaluations.removeAt(index);
+                    final removed = _evaluations.removeAt(index);
+                    removed.dispose();
                   });
                 }
               },
@@ -556,8 +826,11 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
             TextField(
               controller: weightCtrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+              ],
               decoration: const InputDecoration(
-                labelText: 'Ponderación Máxima (pts)',
+                labelText: 'Ponderación Máxima (máx. 100 pts)',
               ),
             ),
           ],
@@ -570,11 +843,12 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
           ElevatedButton(
             onPressed: () {
               final name = nameCtrl.text.trim();
-              final weight = double.tryParse(weightCtrl.text) ?? 0.0;
-              if (name.isNotEmpty && weight > 0) {
+              final parsedWeight = _parseNumber(weightCtrl.text) ?? 0.0;
+              if (name.isNotEmpty && parsedWeight > 0) {
+                final clampedWeight = parsedWeight.clamp(0.1, 100.0);
                 setState(() {
                   _evaluations.add(
-                    EvaluationItem(name: name, maxWeight: weight),
+                    EvaluationItem(name: name, maxWeight: clampedWeight),
                   );
                 });
                 Navigator.pop(ctx);
@@ -584,12 +858,17 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
           ),
         ],
       ),
-    );
+    ).then((_) {
+      Future.delayed(const Duration(milliseconds: 350), () {
+        nameCtrl.dispose();
+        weightCtrl.dispose();
+      });
+    });
   }
 
   void _editEvaluationDialog(EvaluationItem item) {
     final nameCtrl = TextEditingController(text: item.name);
-    final weightCtrl = TextEditingController(text: item.maxWeight.toString());
+    final weightCtrl = TextEditingController(text: _formatScore(item.maxWeight));
 
     showDialog(
       context: context,
@@ -606,7 +885,12 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
             TextField(
               controller: weightCtrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Ponderación Máxima (pts)'),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+              ],
+              decoration: const InputDecoration(
+                labelText: 'Ponderación Máxima (máx. 100 pts)',
+              ),
             ),
           ],
         ),
@@ -618,11 +902,12 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
           ElevatedButton(
             onPressed: () {
               final name = nameCtrl.text.trim();
-              final weight = double.tryParse(weightCtrl.text) ?? item.maxWeight;
-              if (name.isNotEmpty) {
+              final parsedWeight = _parseNumber(weightCtrl.text) ?? item.maxWeight;
+              if (name.isNotEmpty && parsedWeight > 0) {
                 setState(() {
                   item.name = name;
-                  item.maxWeight = weight;
+                  item.maxWeight = parsedWeight.clamp(0.1, 100.0);
+                  _reconcileBaseCapAndControllers();
                 });
                 Navigator.pop(ctx);
               }
@@ -631,6 +916,11 @@ class _GradeCalculatorScreenState extends State<GradeCalculatorScreen> {
           ),
         ],
       ),
-    );
+    ).then((_) {
+      Future.delayed(const Duration(milliseconds: 350), () {
+        nameCtrl.dispose();
+        weightCtrl.dispose();
+      });
+    });
   }
 }
