@@ -122,9 +122,13 @@ class DrawerMenu extends StatelessWidget {
                     _buildSectionHeader(context, 'COMUNIDAD Y NOTICIAS'),
                     _buildNewsHighlightTile(context),
 
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.symmetric(vertical: 12.0),
-                      child: Divider(height: 1),
+                      child: Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                      ),
                     ),
 
                     _buildMenuItem(
@@ -301,17 +305,17 @@ class DrawerMenu extends StatelessWidget {
                         currentUser?.nombre.isNotEmpty == true ? currentUser!.nombre : 'Estudiante UPEA',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 17,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         currentUser?.email.isNotEmpty == true ? currentUser!.email : 'estudiante@upea.bo',
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.8),
-                          fontSize: 12,
+                          fontSize: 11,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -543,12 +547,16 @@ class DrawerMenu extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            'Noticiero Sistemas',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: isSelected ? Colors.white : colorScheme.onSurface,
+                          Flexible(
+                            child: Text(
+                              'Noticiero Sistemas',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: isSelected ? Colors.white : colorScheme.onSurface,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -578,6 +586,8 @@ class DrawerMenu extends StatelessWidget {
                               ? Colors.white.withValues(alpha: 0.85)
                               : colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),

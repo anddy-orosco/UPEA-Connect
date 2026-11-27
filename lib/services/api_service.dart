@@ -97,6 +97,42 @@ class ApiService {
     }
   }
 
+  static Future<void> forgotPassword({required String email}) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/forgot-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email}),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return;
+    } else {
+      throw Exception(data['message'] ?? data['error'] ?? 'Error al enviar el código de recuperación');
+    }
+  }
+
+  static Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/reset-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email, 'code': code, 'newPassword': newPassword}),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return;
+    } else {
+      throw Exception(data['message'] ?? data['error'] ?? 'Error al restablecer la contraseña');
+    }
+  }
+
   static Future<String> uploadImage(
     Uint8List bytes,
     String filename, {

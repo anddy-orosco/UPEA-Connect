@@ -142,7 +142,10 @@ class _NoticiaDetalleScreenState extends State<NoticiaDetalleScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Metadatos: Categoría, Destacada y Fecha
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -164,7 +167,6 @@ class _NoticiaDetalleScreenState extends State<NoticiaDetalleScreen> {
                         ),
                       ),
                       if (n.destacada) ...[
-                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
@@ -173,6 +175,7 @@ class _NoticiaDetalleScreenState extends State<NoticiaDetalleScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(Icons.star_rounded,
                                   size: 13, color: Colors.amber.shade900),
@@ -189,19 +192,23 @@ class _NoticiaDetalleScreenState extends State<NoticiaDetalleScreen> {
                           ),
                         ),
                       ],
-                      const Spacer(),
-                      Icon(
-                        Icons.schedule_rounded,
-                        size: 13,
-                        color: colorScheme.onSurface.withValues(alpha: 0.5),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        fechaStr,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.schedule_rounded,
+                            size: 13,
+                            color: colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            fechaStr,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: colorScheme.onSurface.withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -247,9 +254,13 @@ class _NoticiaDetalleScreenState extends State<NoticiaDetalleScreen> {
                     ),
                   ],
 
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.symmetric(vertical: 16.0),
-                    child: Divider(),
+                    child: Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
                   ),
 
                   // Contenido largo de la noticia
