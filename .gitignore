@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Archivos locales generados que no deben ir en el repo
+/android/local.properties
+/ios/Flutter/ephemeral/
+/ios/Flutter/flutter_export_environment.sh
