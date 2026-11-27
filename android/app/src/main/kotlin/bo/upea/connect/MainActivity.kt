@@ -1,4 +1,4 @@
-package com.example.mi_app_universitaria
+package bo.upea.connect
 
 import io.flutter.embedding.android.FlutterActivity
 
