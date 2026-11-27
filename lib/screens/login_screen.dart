@@ -9,6 +9,7 @@ import '../widgets/diagonal_split_painter.dart';
 import 'home_screen.dart';
 import 'register_screen.dart';
 import 'verify_email_screen.dart';
+import 'forgot_password_screen.dart';
 
 /// Pantalla de inicio de sesión.
 /// Vive en lib/screens/login_screen.dart
@@ -112,6 +113,16 @@ class _LoginScreenState extends State<LoginScreen> {
   void _irACrearCuenta() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => const RegisterScreen()),
+    );
+  }
+
+  void _irAOvidarContrasena() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ForgotPasswordScreen(
+          emailPrellenado: _emailController.text.trim(),
+        ),
+      ),
     );
   }
 
@@ -292,6 +303,26 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               filled: true,
                               fillColor: fillColor,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: _isLoading ? null : _irAOvidarContrasena,
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 6),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: Text(
+                                '¿Olvidaste tu contraseña?',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.primary,
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 22),
