@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:mi_app_universitaria/services/focus_service.dart';
-import 'package:mi_app_universitaria/screens/focus_store_screen.dart';
-import 'package:mi_app_universitaria/screens/pomodoro_screen.dart';
-import 'package:mi_app_universitaria/models/subject_model.dart';
+import 'package:upea_connect/services/focus_service.dart';
+import 'package:upea_connect/screens/focus_store_screen.dart';
+import 'package:upea_connect/screens/pomodoro_screen.dart';
+import 'package:upea_connect/models/subject_model.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

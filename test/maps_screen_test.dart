@@ -2,11 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mi_app_universitaria/data/map_data.dart';
-import 'package:mi_app_universitaria/models/map_location_model.dart';
-import 'package:mi_app_universitaria/screens/maps_screen.dart';
-import 'package:mi_app_universitaria/services/theme_service.dart';
-import 'package:mi_app_universitaria/theme/app_theme.dart';
+import 'package:upea_connect/data/map_data.dart';
+import 'package:upea_connect/models/map_location_model.dart';
+import 'package:upea_connect/screens/maps_screen.dart';
+import 'package:upea_connect/services/theme_service.dart';
+import 'package:upea_connect/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

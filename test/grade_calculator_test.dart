@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mi_app_universitaria/screens/grade_calculator_screen.dart';
+import 'package:upea_connect/screens/grade_calculator_screen.dart';
 
 void main() {
   testWidgets(
