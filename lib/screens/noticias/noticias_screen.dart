@@ -608,7 +608,10 @@ class _NoticiasScreenState extends State<NoticiasScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Badge de categoría y Fecha
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -630,7 +633,6 @@ class _NoticiasScreenState extends State<NoticiasScreen> {
                           ),
                         ),
                         if (noticia.destacada) ...[
-                          const SizedBox(width: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 6, vertical: 2),
@@ -648,7 +650,6 @@ class _NoticiasScreenState extends State<NoticiasScreen> {
                             ),
                           ),
                         ],
-                        const Spacer(),
                         Text(
                           fechaStr,
                           style: TextStyle(
